@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Auction Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: #fff;
+        }
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 200px;
+            background: #222;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 24px;
+        }
+        .sidebar .logo {
+            width: 120px;
+            margin-bottom: 32px;
+        }
+        .sidebar .logo img {
+            width: 100%;
+        }
+        .sidebar .nav-section {
+            margin-bottom: 40px;
+            width: 100%;
+        }
+        .sidebar .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #fff;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        .sidebar .nav-item.active, .sidebar .nav-item:hover {
+            background: #444;
+        }
+        .sidebar .nav-item .icon {
+            font-size: 28px;
+            width: 32px;
+            text-align: center;
+        }
+        .main-content {
+            flex: 1;
+            padding: 32px 24px 24px 24px;
+            display: flex;
+            flex-direction: column;
+        }
+        .team-logo {
+            width: 90px;
+            height: 90px;
+            margin: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #222;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0004;
+        }
+        .team-logo img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+        .table-section {
+            margin-top: 0;
+            margin-left: 0;
+            overflow-x: auto;
+        }
+        .tables-align {
+            margin-left: 0;
+        }
+        table.dashboard-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+            margin-left: 0;
+            font-size: 16px;
+            table-layout: fixed;
+            background: #111;
+        }
+        table.dashboard-table th, table.dashboard-table td {
+            text-align: center;
+            padding: 6px 0;
+            min-width: 60px;
+            color: #fff;
+        }
+        table.dashboard-table th.label, table.dashboard-table td.label {
+            background: none;
+            color: #fff;
+            text-align: right;
+            font-weight: bold;
+            width: 120px;
+            min-width: 120px;
+            padding-right: 4px;
+            white-space: nowrap;
+        }
+        @media (max-width: 1200px) {
+            table.dashboard-table th.label, table.dashboard-table td.label {
+                min-width: 80px;
+                font-size: 14px;
+            }
+            .team-logo {
+                width: 60px;
+                height: 60px;
+            }
+            .team-logo img {
+                width: 50px;
+                height: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/bengaluru_allstars.png') }}" alt="Bengaluru Allstars">
+            </div>
+            <div class="nav-section">
+                <div class="nav-item active" onclick="navigateToPage('home')"><span class="icon">🏠</span> Home</div>
+                <div class="nav-item" onclick="navigateToPage('teams')"><span class="icon">📝</span> Teams</div>
+                <div class="nav-item" onclick="navigateToPage('preferences')"><span class="icon">👥</span> Preferences</div>
+                <div class="nav-item" onclick="navigateToPage('auction')"><span class="icon">🧑‍🤝‍🧑</span> Auction</div>
+                <div class="nav-item" onclick="navigateToPage('budgeting')"><span class="icon">💰</span> Budgeting</div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="table-section">
+                <table class="dashboard-table">
+                    <tr>
+                        <td class="label"></td>
+                        <td><img src="{{ url_for('static', filename='images/bengaluru_allstars.png') }}" alt="Bengaluru Allstars" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/deccan_aces.png') }}" alt="Deccan Aces" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/goan_nuts.png') }}" alt="Goan Nuts" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/gujarat_falcons.png') }}" alt="Gujarat Falcons" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/kolkata_warriors.png') }}" alt="Kolkata Warriors" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/lucknow_kings.png') }}" alt="Lucknow Kings" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/mumbai_anchors.png') }}" alt="Mumbai Anchors" class="team-logo" style="width:80px;height:80px;"></td>
+                    </tr>
+                    {% set labels = [
+                        'purse', 'opening balance', 'spent', 'remaining pro', 'remaining quali', 'captain', 'wildcard',
+                        'pro 1', 'pro 2', 'pro 3',
+                        'qualifier 1', 'qualifier 2', 'qualifier 3', 'qualifier 4', 'qualifier 5', 'qualifier 6'
+                    ] %}
+                    {% for label in labels %}
+                    <tr>
+                        <td class="label">{{ label }}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="{{ url_for('static', filename='firebase.js') }}"></script>
+<script>
+function navigateToPage(page) {
+    switch(page) {
+        case 'home':
+            window.location.href = '/home_page';
+            break;
+        case 'teams':
+            window.location.href = '/teams';
+            break;
+        case 'preferences':
+            window.location.href = '/preferences';
+            break;
+        case 'auction':
+            window.location.href = '/auction';
+            break;
+        case 'budgeting':
+            window.location.href = '/budgeting';
+            break;
+        default:
+            console.log('Unknown page:', page);
+    }
+}
+window.navigateToPage = navigateToPage;
+</script>
+</html>

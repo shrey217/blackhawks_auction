@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auction Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0d0d0d;
+            color: #fff;
+        }
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 200px;
+            background: #e44a22;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 24px;
+        }
+        .sidebar .logo {
+            width: 120px;
+            margin-bottom: 32px;
+        }
+        .sidebar .logo img {
+            width: 100%;
+        }
+        .sidebar .nav-section {
+            margin-bottom: 40px;
+            width: 100%;
+        }
+        .sidebar .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #fff;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        .sidebar .nav-item.active, .sidebar .nav-item:hover {
+            background: rgba(0,0,0,0.12);
+        }
+        .sidebar .nav-item .icon {
+            font-size: 28px;
+            width: 32px;
+            text-align: center;
+        }
+        .main-content {
+            flex: 1;
+            padding: 32px 24px 24px 24px;
+            display: flex;
+            flex-direction: column;
+        }
+        .page-title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 32px;
+            color: #fff;
+        }
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #e44a22;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #d13a12;
+        }
+        .btn-secondary {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+        }
+        .btn-secondary:hover {
+            background: #444;
+        }
+        .btn-danger {
+            background: #d32f2f;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #b71c1c;
+        }
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+        .btn-warning:hover {
+            background: #e68900;
+        }
+        .filter-dropdown {
+            background: #181818;
+            color: #fff;
+            border: 1px solid #333;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .filter-dropdown:focus {
+            outline: none;
+            border-color: #e44a22;
+            box-shadow: 0 0 0 2px rgba(228, 74, 34, 0.2);
+        }
+        .filter-dropdown option {
+            background: #181818;
+            color: #fff;
+        }
+        .auction-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #181818;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .auction-table th {
+            background: #e44a22;
+            color: white;
+            padding: 16px 12px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .auction-table td {
+            padding: 12px;
+            border-bottom: 1px solid #333;
+            font-size: 14px;
+        }
+        .auction-table tr:hover {
+            background: #222;
+        }
+        .auction-table tr:last-child td {
+            border-bottom: none;
+        }
+        .editable {
+            cursor: pointer;
+            position: relative;
+        }
+        .editable:hover {
+            background: rgba(228, 74, 34, 0.1);
+        }
+        .editable input {
+            background: transparent;
+            border: 1px solid #e44a22;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .editable input:focus {
+            outline: none;
+            border-color: #ff6b3d;
+            box-shadow: 0 0 0 2px rgba(228, 74, 34, 0.2);
+        }
+        .interest-true {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .interest-false {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .team-dropdown, .rtm-dropdown {
+            background: #181818;
+            color: #fff;
+            border: 1px solid #333;
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%;
+            cursor: pointer;
+        }
+        .team-dropdown:focus, .rtm-dropdown:focus {
+            outline: none;
+            border-color: #e44a22;
+            box-shadow: 0 0 0 2px rgba(228, 74, 34, 0.2);
+        }
+        .team-dropdown option, .rtm-dropdown option {
+            background: #181818;
+            color: #fff;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #888;
+        }
+        .error {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #ff6666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/hyderabad.png') }}" alt="Hyderabad Black Hawks">
+            </div>
+            <div class="nav-section">
+                <div class="nav-item" onclick="navigateToPage('home')"><span class="icon">🏠</span> Home</div>
+                <div class="nav-item" onclick="navigateToPage('teams')"><span class="icon">📝</span> Teams</div>
+                <div class="nav-item" onclick="navigateToPage('preferences')"><span class="icon">👥</span> Preferences</div>
+                <div class="nav-item active" onclick="navigateToPage('auction')"><span class="icon">🧑‍🤝‍🧑</span> Auction</div>
+                <div class="nav-item" onclick="navigateToPage('budgeting')"><span class="icon">💰</span> Budgeting</div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="page-title">Auction Dashboard</div>
+            <div class="controls">
+                <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                    <div>
+                        <label style="color: #fff; margin-right: 8px;">Category:</label>
+                        <select id="categoryFilter" class="filter-dropdown" onchange="applyFilters()">
+                            <option value="">All Categories</option>
+                            <option value="bronze">Bronze</option>
+                            <option value="silver">Silver</option>
+                            <option value="gold">Gold</option>
+                            <option value="platinum">Platinum</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="color: #fff; margin-right: 8px;">Position:</label>
+                        <select id="positionFilter" class="filter-dropdown" onchange="applyFilters()">
+                            <option value="">All Positions</option>
+                            <option value="Setter">Setter</option>
+                            <option value="Attacker">Attacker</option>
+                            <option value="Libero">Libero</option>
+                            <option value="Middle Blocker">Middle Blocker</option>
+                            <option value="Universal">Universal</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="color: #fff; margin-right: 8px;">Search:</label>
+                        <input type="text" id="searchBar" class="filter-dropdown" placeholder="Search by player name..." oninput="applyFilters()" style="width: 180px;" />
+                    </div>
+                </div>
+                <div style="display: flex; gap: 16px; align-items: center;">
+                    <button class="btn btn-primary" onclick="sellSelectedPlayer()">Sell</button>
+                    <button class="btn btn-secondary" onclick="unsoldSelectedPlayer()">Unsold</button>
+                    <button class="btn btn-warning" onclick="undoLastSale()">Undo</button>
+                    <button class="btn btn-danger" onclick="resetAuction()">Reset Auction</button>
+                </div>
+            </div>
+            <div id="table-container">
+                <div class="loading">Loading auction data...</div>
+            </div>
+        </div>
+    </div>
+    <!-- Player Detail Modal -->
+    <div id="playerModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;">
+      <div style="background:#222; color:#fff; border-radius:12px; padding:32px; min-width:340px; max-width:90vw; max-height:90vh; overflow-y:auto; position:relative;">
+        <button onclick="closePlayerModal()" style="position:absolute; top:12px; right:16px; background:none; border:none; color:#fff; font-size:24px; cursor:pointer;">&times;</button>
+        <div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap;">
+          <img id="playerModalImg" src="https://ui-avatars.com/api/?name=Player" alt="Player Image" style="width:100px; height:100px; border-radius:50%; object-fit:cover; background:#444;" />
+          <div>
+            <div style="font-size:28px; font-weight:bold; margin-bottom:8px;" id="playerModalName">Player Name</div>
+            <div style="margin-bottom:4px;">Category: <span id="playerModalCategory"></span></div>
+            <div style="margin-bottom:4px;">Position: <span id="playerModalPosition"></span></div>
+            <div style="margin-bottom:4px;">State: <span id="playerModalState"></span></div>
+            <div style="margin-bottom:4px;">Competition Level: <span id="playerModalCompetition">N/A</span></div>
+            <div style="margin-bottom:4px;">Previous Teams: <span id="playerModalPrevTeams">N/A</span></div>
+            <div style="margin-bottom:4px;">Experience: <span id="playerModalExperience">N/A</span></div>
+          </div>
+        </div>
+        <div style="margin-top:24px;">
+          <div style="font-weight:bold; margin-bottom:8px;">Team Price Table</div>
+          <table style="width:100%; background:#181818; border-radius:8px; overflow:hidden;">
+            <thead><tr><th style="color:#e44a22; text-align:left; padding:8px;">Team</th><th style="color:#e44a22; text-align:left; padding:8px;">Price</th></tr></thead>
+            <tbody id="playerModalTeamPrices"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+</body>
+<script type="module">
+// --- Firebase Web SDK Setup ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, updateDoc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "ksg-auction.firebaseapp.com",
+  projectId: "ksg-auction",
+  storageBucket: "ksg-auction.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Team abbreviations and full names
+const teamMapping = {
+  "AD": "Ahmedabad Defenders",
+  "BT": "Bengaluru Torpedoes", 
+  "CH": "Calicut Heroes",
+  "CB": "Chennai Blitz",
+  "DT": "Delhi Toofans",
+  "GG": "Goa Guardians",
+  "HBH": "Hyderabad Blackhawks",
+  "KBS": "Kochi Blue Spikers",
+  "KT": "Kolkata Thunderbolts",
+  "MM": "Mumbai Meteors"
+};
+
+// Store sale history for undo functionality
+let saleHistory = JSON.parse(localStorage.getItem('saleHistory') || '[]');
+// Store all players data for filtering
+let allPlayersData = [];
+
+// --- Inline original player data for reset (auto-generated, truncated for brevity) ---
+window.originalPlayersDataArray = [
+  {"player_number":1,"name":"Aayush","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Haryana","position":"Middle Blocker","intrest":true},
+  {"player_number":2,"name":"Akhin GS","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Kerala","position":"Middle Blocker","intrest":false},
+  {"player_number":3,"name":"Aman Kumar","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Haryana","position":"Attacker","intrest":true},
+  {"player_number":4,"name":"Angamuthu","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Tamil Nadu","position":"Universal","intrest":false},
+  {"player_number":5,"name":"Ibin Jose","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Kerala","position":"Universal","intrest":false},
+  {"player_number":6,"name":"Jerome vinith C","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Kerala","position":"Universal","intrest":false},
+  {"player_number":7,"name":"Karthik A","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Karnataka","position":"Middle Blocker","intrest":false},
+  {"player_number":8,"name":"Lad OmVasant","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"TAMIL NADU","position":"Setter","intrest":true},
+  {"player_number":9,"name":"M Ashwin raj","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"TAMIL NADU","position":"Attacker","intrest":false},
+  {"player_number":10,"name":"Manoj Kumar","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Haryana","position":"Universal","intrest":false},
+  {"player_number":11,"name":"Mohanukkrapandian","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"TAMIL NADU","position":"Setter","intrest":true},
+  {"player_number":12,"name":"Niyas Abdul salam","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Kerala","position":"Attacker","intrest":true},
+  {"player_number":13,"name":"P. PRABAKARAN","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"TAMILNADU","position":"LIBERO","intrest":false},
+  {"player_number":14,"name":"Prince","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Haryana","position":"Middle Blocker","intrest":false},
+  {"player_number":15,"name":"Ramanathan R","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Tamil Nadu","position":"LIBERO","intrest":true},
+  {"player_number":16,"name":"Rohit Kumar","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"HARYANA","position":"Attacker","intrest":true},
+  {"player_number":17,"name":"Sameer Chaudhary","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Uttar Pradesh","position":"Setter","intrest":true},
+  {"player_number":18,"name":"SANTHOSH S","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Tamil Nadu","position":"Attacker","intrest":true},
+  {"player_number":19,"name":"Shameemudheen","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"KERALA","position":"Middle Blocker","intrest":true},
+  {"player_number":20,"name":"Shikhar Singh","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Chhattisgarh","position":"Middle Blocker","intrest":true},
+  {"player_number":21,"name":"Shon T John","Team":"","price":8,"preference":0,"category":"PLATINUM","RTM":false,"state":"Kerala","position":"Attacker","intrest":false}
+  // ... (truncated, add the rest of your data.json here)
+];
+let originalPlayersData = {};
+window.originalPlayersDataArray.forEach(player => {
+  originalPlayersData[player.name] = player;
+});
+
+async function fetchAllPlayers() {
+    const allPlayers = [];
+    let playerNumber = 1;
+
+    try {
+        // Get all documents in the players collection
+        const playersCollectionRef = collection(db, "players");
+        const playersSnapshot = await getDocs(playersCollectionRef);
+        
+        // Loop through each player document
+        playersSnapshot.forEach((playerDoc) => {
+            const playerData = playerDoc.data();
+            const player = {
+                number: playerNumber++,
+                name: playerDoc.id,
+                team: playerData.Team || playerData.team || '-', // Check both Team and team for compatibility
+                price: playerData.price || '-',
+                category: playerData.category || '-',
+                rtm: playerData.RTM || playerData.rtm || '-', // Check both RTM and rtm for compatibility
+                state: playerData.state || '-',
+                position: playerData.position || '-',
+                intrest: playerData.intrest === true, // ensure boolean
+                player_number: playerData.player_number || null // Add player_number
+            };
+            allPlayers.push(player);
+        });
+        
+        // Store all players data for filtering
+        allPlayersData = [...allPlayers];
+        
+    } catch (e) {
+        console.error('Error fetching players data:', e);
+    }
+    
+    return allPlayers;
+}
+
+function createAuctionTable(players) {
+    const tableContainer = document.getElementById('table-container');
+    
+    if (players.length === 0) {
+        tableContainer.innerHTML = '<div class="error">No players found in auction</div>';
+        return;
+    }
+
+    let tableHTML = `
+        <table class="auction-table">
+            <thead>
+                <tr>
+                    <th>Select</th>
+                    <th>No.</th>
+                    <th>Name</th>
+                    <th>Team</th>
+                    <th>Price</th>
+                    <th>Category</th>
+                    <th>RTM</th>
+                    <th>State</th>
+                    <th>Position</th>
+                    <th>Interest</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    players.forEach(player => {
+        const interestClass = player.intrest === true ? 'interest-true' : 'interest-false';
+        const interestText = player.intrest === true ? 'TRUE' : 'FALSE';
+        
+        // Create team dropdown options
+        let teamOptions = '<option value="">Select Team</option>';
+        Object.entries(teamMapping).forEach(([abbr, name]) => {
+            const selected = player.team === abbr ? 'selected' : '';
+            teamOptions += `<option value="${abbr}" ${selected}>${name}</option>`;
+        });
+        
+        // Create RTM dropdown options
+        let rtmOptions = '<option value="">Select RTM</option>';
+        const rtmSelected = player.rtm === true ? 'selected' : '';
+        const rtmFalseSelected = player.rtm === false ? 'selected' : '';
+        rtmOptions += `<option value="true" ${rtmSelected}>TRUE</option>`;
+        rtmOptions += `<option value="false" ${rtmFalseSelected}>FALSE</option>`;
+        
+        tableHTML += `
+            <tr>
+                <td>
+                    <input type="radio" name="selectedPlayer" value="${player.name}" class="player-radio">
+                </td>
+                <td>${player.player_number || ''}</td>
+                <td><span class="player-name-link" style="color:#e44a22; cursor:pointer; text-decoration:underline;" onclick="showPlayerModal('${encodeURIComponent(player.name)}')">${player.name}</span></td>
+                <td>
+                    <select class="team-dropdown" data-player="${player.name}" onchange="updateTeam(this)">
+                        ${teamOptions}
+                    </select>
+                </td>
+                <td class="editable" data-field="price" data-player="${player.name}" onclick="makeEditable(this)">${player.price}</td>
+                <td>${player.category}</td>
+                <td>
+                    <select class="rtm-dropdown" data-player="${player.name}" onchange="updateRTM(this)">
+                        ${rtmOptions}
+                    </select>
+                </td>
+                <td>${player.state}</td>
+                <td>${player.position}</td>
+                <td class="${interestClass}">${interestText}</td>
+            </tr>
+        `;
+    });
+
+    tableHTML += `
+            </tbody>
+        </table>
+    `;
+
+    tableContainer.innerHTML = tableHTML;
+}
+
+// Navigation function
+function navigateToPage(page) {
+    switch(page) {
+        case 'home':
+            window.location.href = '/home_page';
+            break;
+        case 'teams':
+            window.location.href = '/teams';
+            break;
+        case 'preferences':
+            window.location.href = '/preferences';
+            break;
+        case 'auction':
+            window.location.href = '/auction';
+            break;
+        case 'budgeting':
+            window.location.href = '/budgeting';
+            break;
+        default:
+            console.log('Unknown page:', page);
+    }
+}
+
+// Make navigateToPage available globally
+window.navigateToPage = navigateToPage;
+
+// Make editing functions available globally
+window.makeEditable = makeEditable;
+window.saveEditable = saveEditable;
+window.updateTeam = updateTeam;
+window.updateRTM = updateRTM;
+window.sellSelectedPlayer = sellSelectedPlayer;
+window.undoLastSale = undoLastSale;
+window.resetAuction = resetAuction;
+window.applyFilters = applyFilters;
+window.unsoldSelectedPlayer = unsoldSelectedPlayer;
+
+function makeEditable(cell) {
+    const currentValue = cell.textContent;
+    const field = cell.getAttribute('data-field');
+    const playerName = cell.getAttribute('data-player');
+    
+    // Create input element
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentValue;
+    input.className = 'editable-input';
+    
+    // Replace cell content with input
+    cell.textContent = '';
+    cell.appendChild(input);
+    input.focus();
+    
+    // Handle save on Enter or blur
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            saveEditable(cell, input.value, field, playerName);
+        }
+    });
+    
+    input.addEventListener('blur', function() {
+        saveEditable(cell, input.value, field, playerName);
+    });
+}
+
+async function saveEditable(cell, newValue, field, playerName) {
+    try {
+        // Update Firebase
+        const playerRef = doc(db, "players", playerName);
+        const updateData = {};
+        updateData[field] = newValue;
+        
+        await updateDoc(playerRef, updateData);
+        
+        // Update the cell display
+        cell.textContent = newValue;
+        
+        console.log(`Updated ${field} for ${playerName} to: ${newValue}`);
+        
+    } catch (error) {
+        console.error('Error updating field:', error);
+        // Revert to original value on error
+        cell.textContent = cell.getAttribute('data-original-value') || newValue;
+    }
+}
+
+async function updateTeam(select) {
+    const playerName = select.getAttribute('data-player');
+    const newTeam = select.value;
+    
+    try {
+        // Update the Team in the players collection (capitalized)
+        const playerRef = doc(db, "players", playerName);
+        await updateDoc(playerRef, { Team: newTeam });
+        
+        console.log(`Updated Team for ${playerName} to: ${newTeam}`);
+        
+    } catch (error) {
+        console.error('Error updating Team:', error);
+    }
+}
+
+async function updateRTM(select) {
+    const playerName = select.getAttribute('data-player');
+    const newRTM = select.value === 'true';
+    
+    try {
+        // Update the RTM in the players collection
+        const playerRef = doc(db, "players", playerName);
+        await updateDoc(playerRef, { RTM: newRTM });
+        
+        console.log(`Updated RTM for ${playerName} to: ${newRTM}`);
+        
+    } catch (error) {
+        console.error('Error updating RTM:', error);
+    }
+}
+
+// --- One-time retained players fix ---
+async function fixRetainedPlayers() {
+    // Map of abbreviation to full team name
+    const teamFullNames = {
+        'AD': 'Ahmedabad Defenders',
+        'BT': 'Bengaluru Torpedoes',
+        'CH': 'Calicut Heroes',
+        'CB': 'Chennai Blitz',
+        'KBS': 'Kochi Blue Spikers',
+        'KT': 'Kolkata Thunderbolts',
+        'MM': 'Mumbai Meteors',
+        'GG': 'Goa Guardians',
+        'DT': 'Delhi Toofans',
+    };
+    // List of retained players by team abbreviation
+    const retained = {
+        'AD': ["MUTHUSWAMY APPAVU", "NANDHAGOPAL SUBRAMANIAM"],
+        'BT': ["SETHU T R", "MUJEEB M C", "B MIDHUN KUMAR"],
+        'CH': ["VIKAS MAAN", "ASHOK BISHNOI"],
+        'CB': ["DHILIP KUMAR"],
+        'KBS': ["ERIN VARGHESE"],
+        'KT': ["ASHWAL RAI", "RAHUL K", "HARI PRASAD"],
+        'MM': ["AMIT GULIA", "SUBHAM CHOUDARY"],
+        'GG': ["ARAVINDAN D", "CHIRAG YADAV", "LM MANOJ"],
+        'DT': ["SAQLAIN TARIQ", "ANU JAMES", "ANAND K"],
+    };
+    for (const [abbr, players] of Object.entries(retained)) {
+        const fullName = teamFullNames[abbr];
+        for (const playerName of players) {
+            try {
+                const playerRef = doc(db, "players", playerName);
+                const playerSnap = await getDoc(playerRef);
+                if (playerSnap.exists()) {
+                    const playerData = playerSnap.data();
+                    playerData.Team = fullName; // Use capitalized Team
+                    playerData.RTM = false; // Use capitalized RTM
+                    playerData.category = 'retained';
+                    // Move to team roster
+                    const teamPlayerRef = doc(db, abbr, "roster", "players", playerName);
+                    await setDoc(teamPlayerRef, playerData);
+                    console.log(`Moved retained player ${playerName} to ${fullName}`);
+                }
+                // Always attempt to delete from auction
+                await deleteDoc(playerRef);
+                console.log(`Deleted retained player ${playerName} from auction`);
+            } catch (e) {
+                console.error(`Error moving or deleting retained player ${playerName}:`, e);
+            }
+        }
+    }
+}
+// Uncomment and run once to fix retained players:
+fixRetainedPlayers();
+
+// --- Update sellSelectedPlayer to use full team name ---
+async function sellSelectedPlayer() {
+    const selectedRadio = document.querySelector('input[name="selectedPlayer"]:checked');
+    if (!selectedRadio) {
+        alert('Please select a player to sell');
+        return;
+    }
+    const playerName = selectedRadio.value;
+    try {
+        const playerRef = doc(db, "players", playerName);
+        const playerDoc = await getDoc(playerRef);
+        const playerData = playerDoc.data();
+        // Use full team name
+        const abbr = playerData.Team || playerData.team; // Check both Team and team for compatibility
+        const fullTeamName = teamMapping[abbr] || abbr;
+        // Ensure only Team and RTM fields are set
+        playerData.Team = fullTeamName;
+        if ('team' in playerData) delete playerData.team;
+        if ('rtm' in playerData) {
+            playerData.RTM = playerData.rtm;
+            delete playerData.rtm;
+        }
+        // Check if team and price are set
+        if (!abbr || abbr === '-' || !playerData.price || playerData.price === '-') {
+            alert('Please set both team and price before selling');
+            return;
+        }
+        // Store sale in history for undo (persist in localStorage)
+        saleHistory.push({
+            playerName: playerName,
+            playerData: playerData,
+            team: abbr,
+            timestamp: Date.now()
+        });
+        localStorage.setItem('saleHistory', JSON.stringify(saleHistory));
+        // Move player to team collection
+        await movePlayerToTeam(playerName, playerData, abbr);
+        // Recalculate finances after selling the player
+        await recalculateAndUpdateFinances();
+        console.log(`Sold ${playerName} to ${fullTeamName} for ${playerData.price}`);
+    } catch (error) {
+        console.error('Error selling player:', error);
+        alert('Error selling player. Please try again.');
+    }
+}
+
+async function undoLastSale() {
+    if (saleHistory.length === 0) {
+        alert('No sales to undo');
+        return;
+    }
+    
+    const lastSale = saleHistory.pop();
+    localStorage.setItem('saleHistory', JSON.stringify(saleHistory));
+    
+    try {
+        if (lastSale.action === 'unsold') {
+            // Move player back from unsold to players
+            const unsoldRef = doc(db, "unsold", lastSale.playerName);
+            const playerRef = doc(db, "players", lastSale.playerName);
+            await setDoc(playerRef, lastSale.playerData);
+            await deleteDoc(unsoldRef);
+            console.log(`Undid unsold: moved ${lastSale.playerName} back to players`);
+        } else if (lastSale.action === 'downgrade') {
+            // Restore previous category and price
+            const playerRef = doc(db, "players", lastSale.playerName);
+            await updateDoc(playerRef, {
+                category: lastSale.oldCategory,
+                price: lastSale.oldPrice
+            });
+            console.log(`Undid downgrade: restored ${lastSale.playerName} to ${lastSale.oldCategory} (${lastSale.oldPrice})`);
+        } else {
+            // Remove player from team collection
+            const teamPlayerRef = doc(db, lastSale.team, "roster", "players", lastSale.playerName);
+            await deleteDoc(teamPlayerRef);
+            // Reset player data to original state with base prices
+            const resetPlayerData = {
+                ...lastSale.playerData,
+                Team: "", // Reset Team to empty
+                RTM: false, // Reset RTM to false (capitalized)
+                price: getBasePrice(lastSale.playerData.category) // Reset to base price
+            };
+            // Add player back to players collection
+            const playerRef = doc(db, "players", lastSale.playerName);
+            await setDoc(playerRef, resetPlayerData);
+            // Recalculate finances after undoing the sale
+            await recalculateAndUpdateFinances();
+            console.log(`Undid sale of ${lastSale.playerName} from ${lastSale.team}`);
+        }
+        // Refresh the table
+        location.reload();
+    } catch (error) {
+        console.error('Error undoing sale:', error);
+        alert('Error undoing sale. Please try again.');
+    }
+}
+
+// Function to get base price based on category
+function getBasePrice(category) {
+    const basePrices = {
+        'platinum': 8,
+        'gold': 5,
+        'silver': 3,
+        'bronze': 2
+    };
+    return basePrices[category?.toLowerCase()] || 0;
+}
+
+async function resetAuction() {
+    if (!confirm('Are you sure you want to reset the entire auction? This will move all players back to the auction with their original categories and prices.')) {
+        return;
+    }
+    try {
+        // Get all teams and move their players back to auction
+        for (const teamAbbr of Object.keys(teamMapping)) {
+            const teamPlayersRef = collection(db, teamAbbr, "roster", "players");
+            const teamPlayersSnapshot = await getDocs(teamPlayersRef);
+            for (const playerDoc of teamPlayersSnapshot.docs) {
+                const playerData = playerDoc.data();
+                // Skip players with category "retained" - they stay where they are
+                if (playerData.category && playerData.category.toLowerCase() === 'retained') {
+                    console.log(`Skipping retained player: ${playerDoc.id}`);
+                    continue;
+                }
+                // Restore from original data if available
+                const orig = originalPlayersData[playerDoc.id] || originalPlayersData[playerData.name];
+                const resetPlayerData = {
+                    ...playerData,
+                    Team: "",
+                    RTM: false,
+                    category: orig?.category || 'platinum',
+                    price: orig?.price || getBasePrice('platinum')
+                };
+                // Add player back to auction
+                const auctionPlayerRef = doc(db, "players", playerDoc.id);
+                await setDoc(auctionPlayerRef, resetPlayerData);
+                // Remove from team
+                await deleteDoc(playerDoc.ref);
+            }
+        }
+        // Move all unsold players back to auction with original category/price
+        const unsoldPlayersRef = collection(db, "unsold");
+        const unsoldPlayersSnapshot = await getDocs(unsoldPlayersRef);
+        for (const playerDoc of unsoldPlayersSnapshot.docs) {
+            const playerData = playerDoc.data();
+            const orig = originalPlayersData[playerDoc.id] || originalPlayersData[playerData.name];
+            const resetPlayerData = {
+                ...playerData,
+                category: orig?.category || 'platinum',
+                price: orig?.price || getBasePrice('platinum'),
+                Team: "",
+                RTM: false
+            };
+            const auctionPlayerRef = doc(db, "players", playerDoc.id);
+            await setDoc(auctionPlayerRef, resetPlayerData);
+            await deleteDoc(playerDoc.ref);
+        }
+        // Clear sale history
+        saleHistory = [];
+        localStorage.setItem('saleHistory', JSON.stringify(saleHistory));
+        // Recalculate finances after resetting the auction
+        await recalculateAndUpdateFinances();
+        console.log('Auction reset successfully');
+        // Refresh the table
+        location.reload();
+    } catch (error) {
+        console.error('Error resetting auction:', error);
+        alert('Error resetting auction. Please try again.');
+    }
+}
+
+async function movePlayerToTeam(playerName, playerData, teamAbbr) {
+    try {
+        // Ensure only Team and RTM fields are set
+        playerData.Team = playerData.Team || teamAbbr;
+        if ('team' in playerData) delete playerData.team;
+        if ('rtm' in playerData) {
+            playerData.RTM = playerData.rtm;
+            delete playerData.rtm;
+        }
+        // Add player to team's roster collection
+        const teamPlayerRef = doc(db, teamAbbr, "roster", "players", playerName);
+        await setDoc(teamPlayerRef, playerData);
+        // Remove player from players collection
+        const playerRef = doc(db, "players", playerName);
+        await deleteDoc(playerRef);
+        console.log(`Moved ${playerName} to team ${teamAbbr}`);
+        // Refresh the table to show updated data
+        location.reload();
+    } catch (error) {
+        console.error('Error moving player to team:', error);
+    }
+}
+
+function applyFilters() {
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    const positionFilter = document.getElementById('positionFilter').value;
+    const searchTerm = document.getElementById('searchBar').value.trim().toLowerCase();
+    
+    // Filter players based on selected criteria and search term
+    let filteredPlayers = allPlayersData.filter(player => {
+        const categoryMatch = !categoryFilter || player.category.toLowerCase() === categoryFilter.toLowerCase();
+        const positionMatch = !positionFilter || player.position === positionFilter;
+        const numberMatch = player.player_number && player.player_number.toString() === searchTerm;
+        const nameMatch = player.name && player.name.toLowerCase().includes(searchTerm);
+        const searchMatch = !searchTerm || nameMatch || numberMatch;
+        return categoryMatch && positionMatch && searchMatch;
+    });
+    
+    // Recreate table with filtered data
+    createAuctionTable(filteredPlayers);
+}
+
+// Finance calculation function for navigation
+async function recalculateAndUpdateFinances() {
+    const teamAbbrs = [
+        "AD", "BT", "CH", "CB", "DT", "HBH", "KBS", "KT", "MM", "GG"
+    ];
+    for (const abbr of teamAbbrs) {
+        let auction_spent = 0;
+        let overall_spent = 0;
+        let opening_balance = 80; // You can fetch this from finances if needed
+        try {
+            // Get all players in the team roster
+            const playersRef = collection(db, abbr, "roster", "players");
+            const playersSnap = await getDocs(playersRef);
+            playersSnap.forEach(docSnap => {
+                const player = docSnap.data();
+                const price = parseFloat(player.price) || 0;
+                const category = (player.category || '').toLowerCase();
+                if (category !== 'retained') {
+                    auction_spent += price;
+                }
+                overall_spent += price;
+            });
+            const purse = opening_balance - overall_spent;
+            // Update finances document
+            const financesRef = doc(db, abbr, "finances");
+            await updateDoc(financesRef, {
+                auction_spent: auction_spent,
+                overall_spent: overall_spent,
+                purse: purse
+            });
+        } catch (e) {
+            console.error(`Error updating finances for ${abbr}:`, e);
+        }
+    }
+}
+
+// Make recalculateAndUpdateFinances available globally
+window.recalculateAndUpdateFinances = recalculateAndUpdateFinances;
+
+// Load auction data
+fetchAllPlayers()
+    .then(players => {
+        createAuctionTable(players);
+    })
+    .catch(error => {
+        console.error('Error loading auction data:', error);
+        document.getElementById('table-container').innerHTML = 
+            '<div class="error">Error loading auction data. Please try again.</div>';
+    });
+
+// Modal logic
+window.showPlayerModal = async function(playerNameEncoded) {
+  const playerName = decodeURIComponent(playerNameEncoded);
+  // Try to find player in allPlayersData
+  const player = allPlayersData.find(p => p.name === playerName);
+  if (!player) return;
+
+  // Set modal fields
+  document.getElementById('playerModalName').textContent = player.name;
+  document.getElementById('playerModalCategory').textContent = player.category || '-';
+  document.getElementById('playerModalPosition').textContent = player.position || '-';
+  document.getElementById('playerModalState').textContent = player.state || '-';
+  document.getElementById('playerModalCompetition').textContent = player.competition_level || 'N/A';
+  document.getElementById('playerModalPrevTeams').textContent = player.previous_teams || 'N/A';
+  document.getElementById('playerModalExperience').textContent = player.experience || 'N/A';
+
+  // Set image (use placeholder with initials)
+  const initials = player.name.split(' ').map(w => w[0]).join('').toUpperCase();
+  document.getElementById('playerModalImg').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(player.name)}&background=444&color=fff&size=128`;
+
+  // Team price table
+  let teamPricesHTML = '';
+  Object.entries(teamMapping).forEach(([abbr, name]) => {
+    teamPricesHTML += `<tr><td style='padding:8px;'>${name}</td><td style='padding:8px;'>${player.price || '-'}</td></tr>`;
+  });
+  document.getElementById('playerModalTeamPrices').innerHTML = teamPricesHTML;
+
+  document.getElementById('playerModal').style.display = 'flex';
+}
+
+window.closePlayerModal = function() {
+  document.getElementById('playerModal').style.display = 'none';
+}
+
+// --- Unsold player logic ---
+async function unsoldSelectedPlayer() {
+    const selectedRadio = document.querySelector('input[name="selectedPlayer"]:checked');
+    if (!selectedRadio) {
+        alert('Please select a player to mark as unsold');
+        return;
+    }
+    const playerName = selectedRadio.value;
+    try {
+        const playerRef = doc(db, "players", playerName);
+        const playerDoc = await getDoc(playerRef);
+        if (!playerDoc.exists()) {
+            alert('Player not found');
+            return;
+        }
+        const playerData = playerDoc.data();
+        // Determine new category and price
+        const categoryOrder = ['platinum', 'gold', 'silver', 'bronze'];
+        let currentCategory = (playerData.category || '').toLowerCase();
+        let idx = categoryOrder.indexOf(currentCategory);
+        if (idx === -1) idx = 0; // fallback to platinum if missing
+        if (currentCategory === 'bronze') {
+            // Remove from players and add to unsold
+            const unsoldRef = doc(db, "unsold", playerName);
+            await setDoc(unsoldRef, playerData);
+            await deleteDoc(playerRef);
+            // Store unsold action in history for undo
+            saleHistory.push({
+                action: 'unsold',
+                playerName: playerName,
+                playerData: playerData,
+                from: 'players',
+                to: 'unsold',
+                timestamp: Date.now()
+            });
+            localStorage.setItem('saleHistory', JSON.stringify(saleHistory));
+            console.log(`Moved ${playerName} to unsold collection`);
+        } else {
+            // Move down one category
+            const newCategory = categoryOrder[idx + 1];
+            const newPrice = getBasePrice(newCategory);
+            // Store downgrade action in history for undo
+            saleHistory.push({
+                action: 'downgrade',
+                playerName: playerName,
+                oldCategory: currentCategory,
+                oldPrice: playerData.price,
+                newCategory: newCategory,
+                newPrice: newPrice,
+                timestamp: Date.now()
+            });
+            localStorage.setItem('saleHistory', JSON.stringify(saleHistory));
+            await updateDoc(playerRef, {
+                category: newCategory,
+                price: newPrice
+            });
+            console.log(`Updated ${playerName} to category ${newCategory} with price ${newPrice}`);
+        }
+        // Refresh the table
+        location.reload();
+    } catch (error) {
+        console.error('Error marking player as unsold:', error);
+        alert('Error marking player as unsold. Please try again.');
+    }
+}
+</script>
+</html> 

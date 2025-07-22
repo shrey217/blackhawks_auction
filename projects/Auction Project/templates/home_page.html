@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volleyball Team Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0d0d0d;
+            color: #fff;
+        }
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 200px;
+            background: #e44a22;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 24px;
+        }
+        .sidebar .logo {
+            width: 120px;
+            margin-bottom: 32px;
+        }
+        .sidebar .logo img {
+            width: 100%;
+        }
+        .sidebar .nav-section {
+            margin-bottom: 40px;
+            width: 100%;
+        }
+        .sidebar .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #fff;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        .sidebar .nav-item.active, .sidebar .nav-item:hover {
+            background: rgba(0,0,0,0.12);
+        }
+        .sidebar .nav-item .icon {
+            font-size: 28px;
+            width: 32px;
+            text-align: center;
+        }
+        .main-content {
+            flex: 1;
+            padding: 32px 24px 24px 24px;
+            display: flex;
+            flex-direction: column;
+        }
+        .team-logo {
+            width: 90px;
+            height: 90px;
+            margin: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #181818;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0004;
+        }
+        .team-logo img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+        .table-section {
+            margin-top: 0;
+            margin-left: 0;
+            overflow-x: auto;
+        }
+        .tables-align {
+            margin-left: 0;
+        }
+        table.dashboard-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+            margin-left: 0;
+            font-size: 16px;
+            table-layout: fixed;
+        }
+        table.dashboard-table th, table.dashboard-table td {
+            text-align: center;
+            padding: 6px 0;
+            min-width: 60px;
+        }
+        table.dashboard-table th.label, table.dashboard-table td.label {
+            background: none;
+            color: #fff;
+            text-align: right;
+            font-weight: bold;
+            width: 120px;
+            min-width: 120px;
+            padding-right: 4px;
+            white-space: nowrap;
+        }
+        table.dashboard-table th.threat, table.dashboard-table td.threat {
+            background: none;
+            color: #fff;
+            text-align: center;
+            font-weight: bold;
+            min-width: 50px;
+            padding-left: 2px;
+        }
+        .highlight-yellow {
+            background: #ffe599;
+            color: #000;
+        }
+        .highlight-red {
+            background: #ff6666;
+            color: #fff;
+        }
+        .highlight-green {
+            background: #b6fcb6;
+            color: #000;
+        }
+        .highlight-pink {
+            background: #ffd6d6;
+            color: #000;
+        }
+        .threat-red {
+            background: #d32f2f;
+            color: #fff;
+        }
+        .threat-orange {
+            background: #ff9800;
+            color: #fff;
+        }
+        .threat-yellow {
+            background: #ffe599;
+            color: #d32f2f;
+        }
+        @media (max-width: 1200px) {
+            table.dashboard-table th.label, table.dashboard-table td.label {
+                min-width: 80px;
+                font-size: 14px;
+            }
+            .team-logo {
+                width: 60px;
+                height: 60px;
+            }
+            .team-logo img {
+                width: 50px;
+                height: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/hyderabad.png') }}" alt="Hyderabad Black Hawks">
+            </div>
+            <div class="nav-section">
+                <div class="nav-item active" onclick="navigateToPage('home')"><span class="icon">🏠</span> Home</div>
+                <div class="nav-item" onclick="navigateToPage('teams')"><span class="icon">📝</span> Teams</div>
+                <div class="nav-item" onclick="navigateToPage('preferences')"><span class="icon">👥</span> Preferences</div>
+                <div class="nav-item" onclick="navigateToPage('auction')"><span class="icon">🧑‍🤝‍🧑</span> Auction</div>
+                <div class="nav-item" onclick="navigateToPage('budgeting')"><span class="icon">💰</span> Budgeting</div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="table-section">
+                <table class="dashboard-table">
+                    <tr>
+                        <td class="label"></td>
+                        <td><img src="{{ url_for('static', filename='images/ahmedabad.png') }}" alt="Ahmedabad Defenders" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/bengaluru.png') }}" alt="Bengaluru Torpedoes" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/calicut.png') }}" alt="Calicut Heroes" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/chennai.png') }}" alt="Chennai Blitz" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/delhi.png') }}" alt="Delhi Toofans" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/hyderabad.png') }}" alt="Hyderabad Black Hawks" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/kochi.png') }}" alt="Kochi Blue Spikers" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/kolkata.png') }}" alt="Kolkata Thunderbolts" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/mumbai.png') }}" alt="Mumbai Meteors" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/goa.png') }}" alt="Goa Guardians" class="team-logo" style="width:80px;height:80px;"></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Opening</td>
+                        <td>56 L</td><td>45 L</td><td>63 L</td><td>75 L</td><td>43 L</td><td>49 L</td><td>65 L</td><td>47 L</td><td>48 L</td><td>37 L</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Balance</td>
+                        <td><b>56 L</b></td><td><b>45 L</b></td><td><b>63 L</b></td><td><b>75 L</b></td><td><b>43 L</b></td><td><b>49 L</b></td><td><b>65 L</b></td><td><b>47 L</b></td><td><b>48 L</b></td><td><b>37 L</b></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Auction Spent</td>
+                        <td>0 L</td><td>0 L</td><td>0 L</td><td>0 L</td><td>0 L</td><td>0 L</td><td>0 L</td><td>0 L</td><td>0 L</td><td>0 L</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Spent</td>
+                        <td>24 L</td><td>35 L</td><td>18 L</td><td>5 L</td><td>37 L</td><td>31 L</td><td>15 L</td><td>33 L</td><td>32 L</td><td>43 L</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Threat Values Table -->
+            <div class="table-section" style="margin-top: 32px;">
+                <table class="dashboard-table">
+                    <tr>
+                        <td class="label"></td>
+                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Setter</td>
+                        <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Attacker</td>
+                        <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Libero</td>
+                        <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Middle Blocker</td>
+                        <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Universal</td>
+                        <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- New 5x2 Table -->
+            <div class="table-section" style="margin-top: 32px; display: flex; justify-content: center;">
+                <table class="dashboard-table" style="width: 400px;">
+                    <tr>
+                        <th style="text-align: left; padding: 12px; background: #e44a22; color: white; border-radius: 8px 0 0 0;">Position</th>
+                        <th style="text-align: center; padding: 12px; background: #e44a22; color: white; border-radius: 0 8px 0 0;">Threat Level</th>
+                    </tr>
+                    <tr>
+                        <td style="text-align: left; padding: 12px; border-bottom: 1px solid #333;">Setter</td>
+                        <td style="text-align: center; padding: 12px; border-bottom: 1px solid #333;">-</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: left; padding: 12px; border-bottom: 1px solid #333;">Attacker</td>
+                        <td style="text-align: center; padding: 12px; border-bottom: 1px solid #333;">-</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: left; padding: 12px; border-bottom: 1px solid #333;">Libero</td>
+                        <td style="text-align: center; padding: 12px; border-bottom: 1px solid #333;">-</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: left; padding: 12px; border-bottom: 1px solid #333;">Middle Blocker</td>
+                        <td style="text-align: center; padding: 12px; border-bottom: 1px solid #333;">-</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: left; padding: 12px; border-bottom: 1px solid #333;">Universal</td>
+                        <td style="text-align: center; padding: 12px; border-bottom: 1px solid #333;">-</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+<script type="module">
+// --- Firebase Web SDK Setup ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getFirestore, doc, getDoc, collection, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "ksg-auction.firebaseapp.com",
+  projectId: "ksg-auction",
+  storageBucket: "ksg-auction.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Team abbreviations in the order of the table images:
+// Ahmedabad, Bengaluru, Calicut, Chennai, Delhi, Hyderabad, Kochi, Kolkata, Mumbai, Goa
+const teamAbbrs = [
+  "AD",    // Ahmedabad
+  "BT",    // Bengaluru
+  "CH",   // Calicut (if Calicut is KBS, else use CH)
+  "CB",    // Chennai
+  "DT",    // Delhi
+  "HBH",   // Hyderabad
+  "KBS",   // Kochi (if Kochi is KBS)
+  "KT",    // Kolkata
+  "MM",    // Mumbai
+  "GG"     // Goa
+];
+// If you want to match the images, update the order and abbreviations accordingly
+
+// Position types to count
+const positions = ["Setter", "Attacker", "Libero", "Middle Blocker", "Universal"];
+
+// Map table row labels to Firestore fields
+const fieldMap = [
+  { label: "Opening", field: "opening_balance" },
+  { label: "Balance", field: "purse" },
+  { label: "Auction Spent", field: "auction_spent" },
+  { label: "Spent", field: "overall_spent" }
+];
+
+async function fetchFinancialData() {
+  // For each team, fetch the finances document
+  const teamData = {};
+  for (const abbr of teamAbbrs) {
+    try {
+      const financesDocRef = doc(db, abbr, "finances");
+      const financesSnap = await getDoc(financesDocRef);
+      if (financesSnap.exists()) {
+        teamData[abbr] = financesSnap.data();
+      } else {
+        teamData[abbr] = {};
+      }
+    } catch (e) {
+      teamData[abbr] = {};
+    }
+  }
+  return teamData;
+}
+
+function fillFinancialTable(teamData) {
+  // Find the table
+  const table = document.querySelector("table.dashboard-table");
+  if (!table) return;
+
+  // Remove all rows except the header (first row)
+  while (table.rows.length > 1) table.deleteRow(1);
+
+  // For each field, create a row
+  for (const { label, field } of fieldMap) {
+    const tr = document.createElement("tr");
+    const tdLabel = document.createElement("td");
+    tdLabel.className = "label";
+    tdLabel.textContent = label;
+    tr.appendChild(tdLabel);
+    for (const abbr of teamAbbrs) {
+      const td = document.createElement("td");
+      let value = teamData[abbr]?.[field];
+      if (value === undefined || value === null) value = "-";
+      else if (!isNaN(value) && value !== "-") value = value + " L";
+      td.textContent = value;
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+}
+
+async function fetchPositionData() {
+  // Initialize position counts for each team
+  const teamPositionCounts = {};
+  for (const abbr of teamAbbrs) {
+    teamPositionCounts[abbr] = {
+      "Setter": 0,
+      "Attacker": 0,
+      "Libero": 0,
+      "Middle Blocker": 0,
+      "Universal": 0
+    };
+  }
+
+  // For each team, fetch all players and count positions
+  for (const abbr of teamAbbrs) {
+    try {
+      // Get all documents in the players collection
+      const playersCollectionRef = collection(db, abbr, "roster", "players");
+      const playersSnapshot = await getDocs(playersCollectionRef);
+      
+      // Reset counters for this team
+      teamPositionCounts[abbr] = {
+        "Setter": 0,
+        "Attacker": 0,
+        "Libero": 0,
+        "Middle Blocker": 0,
+        "Universal": 0
+      };
+      
+      // Loop through each player document
+      playersSnapshot.forEach((playerDoc) => {
+        const playerData = playerDoc.data();
+        
+        if (playerData && playerData.position) {
+          const position = playerData.position;
+          
+          // Try to match position with case-insensitive comparison
+          const normalizedPosition = position.trim().toLowerCase();
+          
+          // Check all possible position matches
+          const positionMatches = {
+            "setter": "Setter",
+            "attacker": "Attacker", 
+            "libero": "Libero",
+            "middle blocker": "Middle Blocker",
+            "middleblocker": "Middle Blocker",
+            "universal": "Universal"
+          };
+          
+          const matchedPosition = positionMatches[normalizedPosition];
+          
+          if (matchedPosition && teamPositionCounts[abbr].hasOwnProperty(matchedPosition)) {
+            teamPositionCounts[abbr][matchedPosition]++;
+          }
+        }
+      });
+      
+    } catch (e) {
+      console.error(`Error fetching data for team ${abbr}:`, e);
+    }
+  }
+  
+  return teamPositionCounts;
+}
+
+function fillPositionTable(teamPositionCounts) {
+  // Find the second table (threat values table)
+  const tables = document.querySelectorAll("table.dashboard-table");
+  const positionTable = tables[1]; // Second table (index 1)
+  
+  if (!positionTable) {
+    console.error("Position table not found!");
+    return;
+  }
+
+  // Update each row with team-specific counts
+  const rows = positionTable.querySelectorAll("tr");
+  
+  for (let i = 1; i < rows.length; i++) { // Skip header row
+    const cells = rows[i].querySelectorAll("td");
+    
+    if (cells.length >= teamAbbrs.length + 1) { // +1 for label column
+      const positionName = cells[0].textContent.trim();
+      
+      // Update each team column
+      for (let j = 0; j < teamAbbrs.length; j++) {
+        const teamAbbr = teamAbbrs[j];
+        const count = teamPositionCounts[teamAbbr]?.[positionName] || 0;
+        cells[j + 1].textContent = count; // +1 to skip label column
+      }
+    }
+  }
+  
+  // Calculate and fill the final table
+  calculateFinalTable(teamPositionCounts);
+}
+
+function calculateFinalTable(teamPositionCounts) {
+  // Find the third table (5x2 table)
+  const tables = document.querySelectorAll("table.dashboard-table");
+  const finalTable = tables[2]; // Third table (index 2)
+  
+  if (!finalTable) {
+    console.error("Final table not found!");
+    return;
+  }
+
+  const positions = ["Setter", "Attacker", "Libero", "Middle Blocker", "Universal"];
+  const rows = finalTable.querySelectorAll("tr");
+  
+  for (let i = 1; i < rows.length; i++) { // Skip header row
+    const cells = rows[i].querySelectorAll("td");
+    if (cells.length >= 2) {
+      const positionName = cells[0].textContent.trim();
+      let finalValue = 0;
+      
+      if (positionName === "Setter" || positionName === "Libero" || positionName === "Universal") {
+        // Count zeros in the second table for this position
+        const positionTable = tables[1];
+        const positionRows = positionTable.querySelectorAll("tr");
+        for (let j = 1; j < positionRows.length; j++) {
+          const positionCells = positionRows[j].querySelectorAll("td");
+          if (positionCells[0].textContent.trim() === positionName) {
+            for (let k = 1; k < positionCells.length; k++) {
+              const value = parseInt(positionCells[k].textContent) || 0;
+              if (value === 0) {
+                finalValue++;
+              }
+            }
+            break;
+          }
+        }
+      } else if (positionName === "Attacker" || positionName === "Middle Blocker") {
+        // Calculate sum of 0.5(2-x) for each team
+        const positionTable = tables[1];
+        const positionRows = positionTable.querySelectorAll("tr");
+        for (let j = 1; j < positionRows.length; j++) {
+          const positionCells = positionRows[j].querySelectorAll("td");
+          if (positionCells[0].textContent.trim() === positionName) {
+            for (let k = 1; k < positionCells.length; k++) {
+              const x = parseInt(positionCells[k].textContent) || 0;
+              finalValue += 0.5 * (2 - x);
+            }
+            break;
+          }
+        }
+      }
+      
+      cells[1].textContent = finalValue.toFixed(1);
+    }
+  }
+  // Store threat scores for the current team in localStorage
+  if (typeof Storage !== "undefined") {
+    const threatScoresByPosition = {};
+    for (let i = 1; i < rows.length; i++) {
+      const cells = rows[i].querySelectorAll("td");
+      if (cells.length >= 2) {
+        const positionName = cells[0].textContent.trim();
+        const value = parseFloat(cells[1].textContent) || 0;
+        threatScoresByPosition[positionName] = value;
+      }
+    }
+    localStorage.setItem('threatScoresByPosition', JSON.stringify(threatScoresByPosition));
+  }
+}
+
+async function recalculateAndUpdateFinances() {
+    const teamAbbrs = [
+        "AD", "BT", "CH", "CB", "DT", "HBH", "KBS", "KT", "MM", "GG"
+    ];
+    for (const abbr of teamAbbrs) {
+        let auction_spent = 0;
+        let overall_spent = 0;
+        let opening_balance = 80; // You can fetch this from finances if needed
+        try {
+            // Get all players in the team roster
+            const playersRef = collection(db, abbr, "roster", "players");
+            const playersSnap = await getDocs(playersRef);
+            playersSnap.forEach(docSnap => {
+                const player = docSnap.data();
+                const price = parseFloat(player.price) || 0;
+                const category = (player.category || '').toLowerCase();
+                if (category !== 'retained') {
+                    auction_spent += price;
+                }
+                overall_spent += price;
+            });
+            const purse = opening_balance - overall_spent;
+            // Update finances document
+            const financesRef = doc(db, abbr, "finances");
+            await updateDoc(financesRef, {
+                auction_spent: auction_spent,
+                overall_spent: overall_spent,
+                purse: purse
+            });
+        } catch (e) {
+            console.error(`Error updating finances for ${abbr}:`, e);
+        }
+    }
+}
+
+// Main
+async function initializeHomePage() {
+    // First recalculate and update finances
+    await recalculateAndUpdateFinances();
+    
+    // Then fetch and display the updated data
+    const financialData = await fetchFinancialData();
+    fillFinancialTable(financialData);
+    
+    const positionData = await fetchPositionData();
+    fillPositionTable(positionData);
+}
+
+// Initialize the page
+initializeHomePage();
+
+// Also recalculate finances when the page is reloaded
+window.addEventListener('load', async () => {
+    await recalculateAndUpdateFinances();
+    const financialData = await fetchFinancialData();
+    fillFinancialTable(financialData);
+});
+
+// Navigation function
+function navigateToPage(page) {
+    // Remove active class from all nav items
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => item.classList.remove('active'));
+    
+    // Add active class to clicked item
+    event.target.closest('.nav-item').classList.add('active');
+    
+    // Navigate to the appropriate page
+    switch(page) {
+        case 'home':
+            // Already on home page
+            break;
+        case 'teams':
+            window.location.href = '/teams';
+            break;
+        case 'preferences':
+            window.location.href = '/preferences';
+            break;
+        case 'auction':
+            window.location.href = '/auction';
+            break;
+        case 'budgeting':
+            window.location.href = '/budgeting';
+            break;
+        default:
+            console.log('Unknown page:', page);
+    }
+}
+</script>
+<script src="{{ url_for('static', filename='firebase.js') }}"></script>
+<script>
+function navigateToPage(page) {
+    switch(page) {
+        case 'home':
+            window.location.href = '/home_page';
+            break;
+        case 'teams':
+            window.location.href = '/teams';
+            break;
+        case 'preferences':
+            window.location.href = '/preferences';
+            break;
+        case 'auction':
+            window.location.href = '/auction';
+            break;
+        case 'budgeting':
+            window.location.href = '/budgeting';
+            break;
+        default:
+            console.log('Unknown page:', page);
+    }
+}
+window.navigateToPage = navigateToPage;
+</script>
+</html> 

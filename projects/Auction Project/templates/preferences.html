@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Preferences</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0d0d0d;
+            color: #fff;
+        }
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 200px;
+            background: #e44a22;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 24px;
+        }
+        .sidebar .logo {
+            width: 120px;
+            margin-bottom: 32px;
+        }
+        .sidebar .logo img {
+            width: 100%;
+        }
+        .sidebar .nav-section {
+            margin-bottom: 40px;
+            width: 100%;
+        }
+        .sidebar .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #fff;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        .sidebar .nav-item.active, .sidebar .nav-item:hover {
+            background: rgba(0,0,0,0.12);
+        }
+        .sidebar .nav-item .icon {
+            font-size: 28px;
+            width: 32px;
+            text-align: center;
+        }
+        .main-content {
+            flex: 1;
+            padding: 32px 24px 24px 24px;
+            display: flex;
+            flex-direction: column;
+        }
+        .page-title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 32px;
+            color: #fff;
+        }
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .position-filter {
+            background: #181818;
+            color: #fff;
+            border: 1px solid #333;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .position-filter:focus {
+            outline: none;
+            border-color: #e44a22;
+            box-shadow: 0 0 0 2px rgba(228, 74, 34, 0.2);
+        }
+        .add-player-section {
+            background: #181818;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .add-player-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            color: #e44a22;
+        }
+        .input-group {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .input-field {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #e44a22;
+            box-shadow: 0 0 0 2px rgba(228, 74, 34, 0.2);
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #e44a22;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #d13a12;
+        }
+        .btn-secondary {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+        }
+        .btn-secondary:hover {
+            background: #444;
+        }
+        .preferences-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #181818;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .preferences-table th {
+            background: #e44a22;
+            color: white;
+            padding: 16px 12px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .preferences-table td {
+            padding: 12px;
+            border-bottom: 1px solid #333;
+            font-size: 14px;
+        }
+        .preferences-table tr:hover {
+            background: #222;
+        }
+        .preferences-table tr:last-child td {
+            border-bottom: none;
+        }
+        .sold-player {
+            background: #2d2d2d !important;
+            color: #888;
+        }
+        .sold-player:hover {
+            background: #3d3d3d !important;
+        }
+        .sold-badge {
+            background: #d32f2f;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .error-message {
+            color: #ff6666;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        .success-message {
+            color: #4caf50;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #888;
+        }
+        .no-players {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #888;
+        }
+        .positions-table-section {
+            background: #181818;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .positions-table-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            color: #e44a22;
+        }
+        .positions-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #181818;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .positions-table th {
+            background: #e44a22;
+            color: white;
+            padding: 16px 12px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .positions-table td {
+            padding: 12px;
+            border-bottom: 1px solid #333;
+            font-size: 14px;
+        }
+        .positions-table tr:hover {
+            background: #222;
+        }
+        .positions-table tr:last-child td {
+            border-bottom: none;
+        }
+        .drag-row {
+            cursor: pointer;
+        }
+        .drag-row:hover {
+            background: #222;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/hyderabad.png') }}" alt="Hyderabad Black Hawks">
+            </div>
+            <div class="nav-section">
+                <div class="nav-item" onclick="navigateToPage('home')"><span class="icon">🏠</span> Home</div>
+                <div class="nav-item" onclick="navigateToPage('teams')"><span class="icon">📝</span> Teams</div>
+                <div class="nav-item active" onclick="navigateToPage('preferences')"><span class="icon">👥</span> Preferences</div>
+                <div class="nav-item" onclick="navigateToPage('auction')"><span class="icon">🧑‍🤝‍🧑</span> Auction</div>
+                <div class="nav-item" onclick="navigateToPage('budgeting')"><span class="icon">💰</span> Budgeting</div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="page-title">Player Preferences</div>
+            
+            <div class="controls">
+                <div>
+                    <label style="color: #fff; margin-right: 8px;">Position:</label>
+                    <select id="positionFilter" class="position-filter" onchange="filterByPosition()">
+                        <option value="Setter">Setter</option>
+                        <option value="Attacker">Attacker</option>
+                        <option value="Libero">Libero</option>
+                        <option value="Middle Blocker">Middle Blocker</option>
+                        <option value="Universal">Universal</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="positions-table-section">
+                <div class="positions-table-title">Reorder Positions and Assign Players</div>
+                <div id="positionsTableContainer">
+                    <div class="loading">Loading positions and players...</div>
+                </div>
+            </div>
+
+            <div class="add-player-section">
+                <div class="add-player-title">Add Player to Preferences</div>
+                <div class="input-group">
+                    <input type="text" id="playerName" class="input-field" placeholder="Player Name" list="playerNameList" onkeypress="handleEnterKey(event)">
+                    <input type="text" id="preference" class="input-field" placeholder="Preference (1,2,3,4)" onkeypress="handleEnterKey(event)">
+                    <input type="text" id="priceRange" class="input-field" placeholder="Price Range (e.g., 5-8L)" onkeypress="handleEnterKey(event)">
+                    <button class="btn btn-primary" onclick="addPlayerToPreferences()">Add Player</button>
+                </div>
+                <datalist id="playerNameList"></datalist>
+                <div id="addPlayerMessage"></div>
+            </div>
+
+            <div id="table-container">
+                <div class="loading">Loading preferences data...</div>
+            </div>
+        </div>
+    </div>
+<!-- Player Selection Modal -->
+<div id="playerSelectionModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#222; padding:32px 24px; border-radius:12px; max-width:400px; margin:auto; color:#fff;">
+    <div style="font-size:20px; font-weight:bold; margin-bottom:16px; color:#e44a22;">Select Player by Position</div>
+    <div id="playerSelectionList"></div>
+    <button class="btn btn-secondary" onclick="closePlayerSelectionModal()" style="margin-top:16px;">Cancel</button>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='firebase.js') }}"></script>
+</body>
+<script type="module">
+// --- Firebase Web SDK Setup ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "ksg-auction.firebaseapp.com",
+  projectId: "ksg-auction",
+  storageBucket: "ksg-auction.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Store preferences data
+let allPreferences = [];
+let currentPosition = 'Setter';
+
+// Position-specific preference limits
+const positionLimits = {
+    'Setter': 2,
+    'Attacker': 4,
+    'Libero': 2,
+    'Middle Blocker': 4,
+    'Universal': 2
+};
+
+// Navigation function
+function navigateToPage(page) {
+    switch(page) {
+        case 'home':
+            window.location.href = '/home_page';
+            break;
+        case 'teams':
+            window.location.href = '/teams';
+            break;
+        case 'preferences':
+            window.location.href = '/preferences';
+            break;
+        case 'auction':
+            window.location.href = '/auction';
+            break;
+        case 'budgeting':
+            window.location.href = '/budgeting';
+            break;
+        default:
+            console.log('Unknown page:', page);
+    }
+}
+
+// Make navigateToPage available globally
+window.navigateToPage = navigateToPage;
+
+// Handle Enter key in input fields
+function handleEnterKey(event) {
+    if (event.key === 'Enter') {
+        addPlayerToPreferences();
+    }
+}
+
+// Make handleEnterKey available globally
+window.handleEnterKey = handleEnterKey;
+
+// Search for player in the players collection
+async function searchPlayersByName(playerName) {
+    console.log('[DEBUG] searchPlayersByName called with:', playerName);
+    const playersCollectionRef = collection(db, "players");
+    const playersSnapshot = await getDocs(playersCollectionRef);
+    const matches = [];
+    for (const playerDoc of playersSnapshot.docs) {
+        const data = playerDoc.data();
+        if (data.name && data.name.toLowerCase() === playerName.toLowerCase()) {
+            matches.push({ id: playerDoc.id, ...data });
+        }
+    }
+    console.log('[DEBUG] Matches found:', matches);
+    return matches;
+}
+
+// Modal logic
+function showPlayerSelectionModal(matches, onSelect) {
+    console.log('[DEBUG] showPlayerSelectionModal called with matches:', matches);
+    const modal = document.getElementById('playerSelectionModal');
+    const listDiv = document.getElementById('playerSelectionList');
+    listDiv.innerHTML = '';
+    matches.forEach((player, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-primary';
+        btn.style = 'display:block; width:100%; margin-bottom:8px; text-align:left;';
+        btn.innerHTML = `<b>${player.name}</b> &mdash; Position: ${player.position || 'Unknown'}`;
+        btn.onclick = () => {
+            closePlayerSelectionModal();
+            onSelect(player);
+        };
+        listDiv.appendChild(btn);
+    });
+    modal.style.display = 'flex';
+}
+function closePlayerSelectionModal() {
+    document.getElementById('playerSelectionModal').style.display = 'none';
+}
+window.closePlayerSelectionModal = closePlayerSelectionModal;
+
+// Check if player is sold
+async function checkIfPlayerSold(playerName) {
+    const teamAbbrs = ["AD", "BT", "CH", "CB", "DT", "HBH", "KBS", "KT", "MM", "GG"];
+    
+    for (const abbr of teamAbbrs) {
+        try {
+            const teamPlayerRef = doc(db, abbr, "roster", "players", playerName);
+            const teamPlayerSnap = await getDoc(teamPlayerRef);
+            
+            if (teamPlayerSnap.exists()) {
+                return true;
+            }
+        } catch (error) {
+            console.error(`Error checking if player sold in team ${abbr}:`, error);
+        }
+    }
+    
+    return false;
+}
+
+// Update addPlayerToPreferences
+async function addPlayerToPreferences() {
+    const playerName = document.getElementById('playerName').value.trim();
+    const preference = document.getElementById('preference').value.trim();
+    const priceRange = document.getElementById('priceRange').value.trim();
+    const messageDiv = document.getElementById('addPlayerMessage');
+    messageDiv.innerHTML = '';
+    if (!playerName || !preference || !priceRange) {
+        messageDiv.innerHTML = '<div class="error-message">Please fill in all fields</div>';
+        return;
+    }
+    try {
+        console.log('[DEBUG] addPlayerToPreferences called with:', playerName);
+        const matches = await searchPlayersByName(playerName);
+        if (matches.length === 0) {
+            messageDiv.innerHTML = '<div class="error-message">Player not found in the auction</div>';
+            return;
+        }
+        // If multiple matches, prompt user to select
+        if (matches.length > 1) {
+            showPlayerSelectionModal(matches, async (selectedPlayer) => {
+                await addPlayerWithData(selectedPlayer, preference, priceRange, messageDiv);
+            });
+            return;
+        }
+        // Only one match, proceed
+        await addPlayerWithData(matches[0], preference, priceRange, messageDiv);
+    } catch (error) {
+        console.error('Error adding player to preferences:', error);
+        messageDiv.innerHTML = '<div class="error-message">Error adding player to preferences</div>';
+    }
+}
+window.addPlayerToPreferences = addPlayerToPreferences;
+
+// Helper to add player with selected data
+async function addPlayerWithData(playerData, preference, priceRange, messageDiv) {
+    const playerName = playerData.name;
+    const playerId = playerData.id;
+    const playerPosition = playerData.position || '';
+    const existingIndex = allPreferences.findIndex(p =>
+        p.name.toLowerCase() === playerName.toLowerCase() && p.position === playerPosition
+    );
+    if (existingIndex !== -1) {
+        messageDiv.innerHTML = '<div class="error-message">Player is already in preferences for this position</div>';
+        return;
+    }
+    const newPreference = {
+        name: playerName,
+        preference: preference,
+        priceRange: priceRange,
+        position: playerPosition,
+        isSold: await checkIfPlayerSold(playerName)
+    };
+    allPreferences.push(newPreference);
+    const playerRef = doc(db, "players", playerId);
+    await updateDoc(playerRef, { preference: preference });
+    savePreferencesToStorage();
+    currentPosition = playerPosition;
+    document.getElementById('positionFilter').value = playerPosition;
+    createPreferencesTable();
+    document.getElementById('playerName').value = '';
+    document.getElementById('preference').value = '';
+    document.getElementById('priceRange').value = '';
+    messageDiv.innerHTML = '<div class="success-message">Player added to preferences successfully</div>';
+}
+
+// Filter preferences by position
+function filterByPosition() {
+    currentPosition = document.getElementById('positionFilter').value;
+    createPreferencesTable();
+}
+window.filterByPosition = filterByPosition;
+
+// Create preferences table
+function createPreferencesTable() {
+    const tableContainer = document.getElementById('table-container');
+    
+    // Filter preferences by actual player position
+    const positionPreferences = allPreferences.filter(p => (p.position || '').toLowerCase() === currentPosition.toLowerCase());
+    
+    if (positionPreferences.length === 0) {
+        tableContainer.innerHTML = '<div class="no-players">No players in preferences for ' + currentPosition + '</div>';
+        return;
+    }
+    
+    // Sort by preference (1 first) and move sold players to bottom
+    positionPreferences.sort((a, b) => {
+        if (a.isSold && !b.isSold) return 1;
+        if (!a.isSold && b.isSold) return -1;
+        return a.preference - b.preference;
+    });
+    
+    let tableHTML = `
+        <table class="preferences-table">
+            <thead>
+                <tr>
+                    <th>Preference</th>
+                    <th>Name</th>
+                    <th>Price Range</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    positionPreferences.forEach((player, idx) => {
+        const rowClass = player.isSold ? 'sold-player' : '';
+        const statusCell = player.isSold ? 
+            '<span class="sold-badge">SOLD</span>' : 
+            '<span style="color: #4caf50;">Available</span>';
+        
+        tableHTML += `
+            <tr class="${rowClass}">
+                <td>${player.preference}</td>
+                <td>${player.name}</td>
+                <td>${player.priceRange}</td>
+                <td>${statusCell}</td>
+                <td><button class="btn btn-secondary" onclick="removePlayerFromPreferences('${player.name.replace(/'/g, "\\'")}', '${player.position.replace(/'/g, "\\'")}', ${player.preference})">Remove</button></td>
+            </tr>
+        `;
+    });
+    
+    tableHTML += `
+            </tbody>
+        </table>
+    `;
+    
+    tableContainer.innerHTML = tableHTML;
+}
+
+// Remove player from preferences and set their preference to 0 in Firestore
+async function removePlayerFromPreferences(playerName, position, preference) {
+    // Remove from allPreferences
+    allPreferences = allPreferences.filter(p => !(p.name === playerName && p.position === position && p.preference == preference));
+    savePreferencesToStorage();
+    createPreferencesTable();
+    // Set preference to 0 in Firestore
+    try {
+        const playerRef = doc(db, "players", playerName);
+        await updateDoc(playerRef, { preference: 0 });
+    } catch (error) {
+        console.error('Error setting player preference to 0:', error);
+    }
+}
+
+// Make removePlayerFromPreferences available globally
+window.removePlayerFromPreferences = removePlayerFromPreferences;
+
+// Save preferences to localStorage
+function savePreferencesToStorage() {
+    localStorage.setItem('playerPreferences', JSON.stringify(allPreferences));
+}
+
+// Load preferences from localStorage
+function loadPreferencesFromStorage() {
+    const saved = localStorage.getItem('playerPreferences');
+    if (saved) {
+        allPreferences = JSON.parse(saved);
+    }
+}
+
+// Update sold status for all players
+async function updateSoldStatus() {
+    for (let i = 0; i < allPreferences.length; i++) {
+        allPreferences[i].isSold = await checkIfPlayerSold(allPreferences[i].name);
+    }
+    savePreferencesToStorage();
+    createPreferencesTable();
+}
+
+// Initialize page
+async function initializePage() {
+    loadPreferencesFromStorage();
+    await updateSoldStatus();
+    createPreferencesTable();
+}
+
+// Initialize the page
+initializePage();
+
+// Finance calculation function for navigation
+async function recalculateAndUpdateFinances() {
+    const teamAbbrs = [
+        "AD", "BT", "CH", "CB", "DT", "HBH", "KBS", "KT", "MM", "GG"
+    ];
+    for (const abbr of teamAbbrs) {
+        let auction_spent = 0;
+        let overall_spent = 0;
+        let opening_balance = 80; // You can fetch this from finances if needed
+        try {
+            // Get all players in the team roster
+            const playersRef = collection(db, abbr, "roster", "players");
+            const playersSnap = await getDocs(playersRef);
+            playersSnap.forEach(docSnap => {
+                const player = docSnap.data();
+                const price = parseFloat(player.price) || 0;
+                if ((player.category || '').toLowerCase() !== 'retained') {
+                    auction_spent += price;
+                }
+                overall_spent += price;
+            });
+            const purse = opening_balance - overall_spent;
+            // Update finances document
+            const financesRef = doc(db, abbr, "finances");
+            await updateDoc(financesRef, {
+                auction_spent: auction_spent,
+                overall_spent: overall_spent,
+                purse: purse
+            });
+        } catch (e) {
+            console.error(`Error updating finances for ${abbr}:`, e);
+        }
+    }
+}
+
+// Make recalculateAndUpdateFinances available globally
+window.recalculateAndUpdateFinances = recalculateAndUpdateFinances;
+
+// Fetch all player names and populate the datalist
+async function populatePlayerNameDatalist() {
+    try {
+        const playersCollectionRef = collection(db, "players");
+        const playersSnapshot = await getDocs(playersCollectionRef);
+        const datalist = document.getElementById('playerNameList');
+        datalist.innerHTML = '';
+        playersSnapshot.forEach(playerDoc => {
+            const data = playerDoc.data();
+            if (data.name) {
+                const option = document.createElement('option');
+                option.value = data.name;
+                datalist.appendChild(option);
+            }
+        });
+    } catch (error) {
+        console.error('Error populating player name datalist:', error);
+    }
+}
+
+// Call this on page load
+populatePlayerNameDatalist();
+
+// --- Position Table Data ---
+const defaultPositions = [
+    { label: 'Setter', count: 2 },
+    { label: 'Attacker', count: 4 },
+    { label: 'Middle Blocker', count: 4 },
+    { label: 'Libero', count: 2 },
+    { label: 'Universal', count: 2 }
+];
+
+function getInitialTableRows() {
+    const saved = localStorage.getItem('budgetingTableRows');
+    if (saved) return JSON.parse(saved);
+    let arr = [];
+    defaultPositions.forEach(pos => {
+        for (let i = 1; i <= pos.count; i++) {
+            arr.push({ position: pos.label, slot: i, player: '', price: '' });
+        }
+    });
+    return arr;
+}
+
+function saveTableRows(rows) {
+    localStorage.setItem('budgetingTableRows', JSON.stringify(rows));
+}
+
+let tableRows = getInitialTableRows();
+let hbhPlayersByPosition = {};
+
+// --- Fetch Hyderabad Black Hawks Players by Position ---
+async function fetchHBHPlayers() {
+    const players = [];
+    const playersRef = collection(db, 'HBH', 'roster', 'players');
+    const snapshot = await getDocs(playersRef);
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        players.push({ name: doc.id, position: data.position, price: data.price });
+    });
+    // Group by position (case-insensitive)
+    hbhPlayersByPosition = {};
+    players.forEach(player => {
+        const posKey = player.position ? player.position.toLowerCase() : '';
+        if (!hbhPlayersByPosition[posKey]) hbhPlayersByPosition[posKey] = [];
+        hbhPlayersByPosition[posKey].push(player);
+    });
+}
+
+function renderPositionsTable() {
+    const container = document.getElementById('positionsTableContainer');
+    let html = `<table class="positions-table">
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Position</th>
+                <th>Player Name</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody id="positionsTableBody">
+    `;
+    let totalSpent = 0;
+    tableRows.forEach((row, idx) => {
+        // Use case-insensitive key for position
+        const posKey = row.position ? row.position.toLowerCase() : '';
+        const posPlayers = hbhPlayersByPosition[posKey] || [];
+        html += `<tr class="drag-row" draggable="true" data-idx="${idx}">
+            <td>${idx + 1}</td>
+            <td>${row.position} ${row.slot}</td>
+            <td>
+                <select onchange="window.handlePlayerSelect(event, ${idx})">
+                    <option value="">-- Select Player --</option>`;
+        posPlayers.forEach(player => {
+            const selected = row.player === player.name ? 'selected' : '';
+            html += `<option value="${player.name}" ${selected}>${player.name}</option>`;
+        });
+        html += `</select>
+            </td>
+            <td>${row.price ? row.price : '-'} </td>
+        </tr>`;
+        if (row.price && !isNaN(parseFloat(row.price))) {
+            totalSpent += parseFloat(row.price);
+        }
+    });
+    // Add total purse left row
+    const openingBalance = 80;
+    const purseLeft = openingBalance - totalSpent;
+    html += `<tr style="background:#222;font-weight:bold;">
+        <td colspan="3" style="text-align:right;">Total Purse Left</td>
+        <td>${purseLeft.toFixed(2)} L</td>
+    </tr>`;
+    html += '</tbody></table>';
+    container.innerHTML = html;
+    addDragAndDropHandlers();
+}
+
+window.handlePlayerSelect = function(event, idx) {
+    const playerName = event.target.value;
+    const row = tableRows[idx];
+    row.player = playerName;
+    // Use case-insensitive key for position
+    const posKey = row.position ? row.position.toLowerCase() : '';
+    const posPlayers = hbhPlayersByPosition[posKey] || [];
+    const player = posPlayers.find(p => p.name === playerName);
+    row.price = player ? player.price : '';
+    saveTableRows(tableRows);
+    renderPositionsTable();
+};
+
+function addDragAndDropHandlers() {
+    const rows = document.querySelectorAll('.drag-row');
+    let dragSrcIdx = null;
+    rows.forEach(row => {
+        row.addEventListener('dragstart', function(e) {
+            dragSrcIdx = +this.dataset.idx;
+            this.classList.add('dragging');
+        });
+        row.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        });
+        row.addEventListener('dragleave', function(e) {
+            this.classList.remove('drag-over');
+        });
+        row.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const targetIdx = +this.dataset.idx;
+            if (dragSrcIdx !== null && dragSrcIdx !== targetIdx) {
+                const moved = tableRows.splice(dragSrcIdx, 1)[0];
+                tableRows.splice(targetIdx, 0, moved);
+                saveTableRows(tableRows);
+                renderPositionsTable();
+            }
+        });
+        row.addEventListener('dragend', function(e) {
+            document.querySelectorAll('.drag-row').forEach(r => r.classList.remove('dragging', 'drag-over'));
+            dragSrcIdx = null;
+        });
+    });
+}
+
+// --- Initialize ---
+async function initializePositionsTable() {
+    await fetchHBHPlayers();
+    renderPositionsTable();
+}
+initializePositionsTable();
+</script>
+</html> 

@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budgeting</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0d0d0d;
+            color: #fff;
+        }
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 200px;
+            background: #e44a22;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 24px;
+        }
+        .sidebar .logo {
+            width: 120px;
+            margin-bottom: 32px;
+        }
+        .sidebar .logo img {
+            width: 100%;
+        }
+        .sidebar .nav-section {
+            margin-bottom: 40px;
+            width: 100%;
+        }
+        .sidebar .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #fff;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        .sidebar .nav-item.active, .sidebar .nav-item:hover {
+            background: rgba(0,0,0,0.12);
+        }
+        .sidebar .nav-item .icon {
+            font-size: 28px;
+            width: 32px;
+            text-align: center;
+        }
+        .main-content {
+            flex: 1;
+            padding: 32px 24px 24px 24px;
+            display: flex;
+            flex-direction: column;
+        }
+        .page-title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 32px;
+            color: #fff;
+        }
+        .controls {
+            margin-bottom: 24px;
+        }
+        .filter-dropdown {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 15px;
+        }
+        .positions-table-section {
+            background: #181818;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .positions-table-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            color: #e44a22;
+        }
+        .positions-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #222;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .positions-table th, .positions-table td {
+            padding: 12px;
+            border-bottom: 1px solid #333;
+            font-size: 15px;
+            text-align: left;
+        }
+        .positions-table th {
+            background: #e44a22;
+            color: white;
+            font-weight: bold;
+        }
+        .positions-table tr:last-child td {
+            border-bottom: none;
+        }
+        .drag-row {
+            cursor: grab;
+            background: #292929;
+        }
+        .drag-over {
+            outline: 2px dashed #e44a22;
+        }
+        select {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 15px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #888;
+        }
+        .table-section {
+            background: #181818;
+            border-radius: 12px;
+            padding: 32px 0;
+            margin-bottom: 48px;
+            margin-top: 48px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            max-width: none;
+            width: 100vw;
+            margin-left: calc(-50vw + 50%);
+            margin-right: calc(-50vw + 50%);
+        }
+        .dashboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #222;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            margin-bottom: 48px;
+        }
+        .dashboard-table th, .dashboard-table td {
+            padding: 24px 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/hyderabad.png') }}" alt="Hyderabad Black Hawks">
+            </div>
+            <div class="nav-section">
+                <div class="nav-item" onclick="navigateToPage('home')"><span class="icon">🏠</span> Home</div>
+                <div class="nav-item" onclick="navigateToPage('teams')"><span class="icon">📝</span> Teams</div>
+                <div class="nav-item" onclick="navigateToPage('preferences')"><span class="icon">👥</span> Preferences</div>
+                <div class="nav-item" onclick="navigateToPage('auction')"><span class="icon">🧑‍🤝‍🧑</span> Auction</div>
+                <div class="nav-item active" onclick="navigateToPage('budgeting')"><span class="icon">💰</span> Budgeting</div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="page-title">Budgeting</div>
+            <div class="controls">
+                <label style="color: #fff; margin-right: 8px;">Search:</label>
+                <input type="text" id="searchBar" class="filter-dropdown" placeholder="Search by player name..." list="playerNameSuggestions" style="width: 220px;" />
+                <button id="searchButton" class="btn btn-primary" style="margin-left:8px;">Search</button>
+                <datalist id="playerNameSuggestions"></datalist>
+                <select id="categoryFilter" class="filter-dropdown" style="margin-left: 8px; width: 120px;">
+                    <option value="">All Categories</option>
+                    <option value="Bronze">Bronze</option>
+                    <option value="Silver">Silver</option>
+                    <option value="Gold">Gold</option>
+                    <option value="Platinum">Platinum</option>
+                </select>
+                <select id="positionFilter" class="filter-dropdown" style="margin-left: 8px; width: 150px;">
+                    <option value="">All Positions</option>
+                    <option value="Setter">Setter</option>
+                    <option value="Attacker">Attacker</option>
+                    <option value="Libero">Libero</option>
+                    <option value="Middle Blocker">Middle Blocker</option>
+                    <option value="Universal">Universal</option>
+                </select>
+            </div>
+            <div id="playerSearchResult">
+                <div class="loading">Search for a player to see details.</div>
+            </div>
+        </div>
+    </div>
+    <!-- BEGIN: Home Page Dashboard Section -->
+    <div class="container" style="margin-top:48px;">
+        <div class="main-content" style="width:100%;">
+            <div class="page-title" style="margin-top:0;margin-bottom:24px;">Team Dashboard Overview</div>
+            <div class="table-section">
+                <table class="dashboard-table" id="financial-table">
+                    <tr>
+                        <td class="label"></td>
+                        <td><img src="{{ url_for('static', filename='images/ahmedabad.png') }}" alt="Ahmedabad Defenders" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/bengaluru.png') }}" alt="Bengaluru Torpedoes" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/calicut.png') }}" alt="Calicut Heroes" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/chennai.png') }}" alt="Chennai Blitz" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/delhi.png') }}" alt="Delhi Toofans" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/hyderabad.png') }}" alt="Hyderabad Black Hawks" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/kochi.png') }}" alt="Kochi Blue Spikers" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/kolkata.png') }}" alt="Kolkata Thunderbolts" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/mumbai.png') }}" alt="Mumbai Meteors" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><img src="{{ url_for('static', filename='images/goa.png') }}" alt="Goa Guardians" class="team-logo" style="width:80px;height:80px;"></td>
+                    </tr>
+                    <tr><td class="label">Opening</td><td>56 L</td><td>45 L</td><td>63 L</td><td>75 L</td><td>43 L</td><td>49 L</td><td>65 L</td><td>47 L</td><td>48 L</td><td>37 L</td></tr>
+                    <tr><td class="label">Balance</td><td><b>56 L</b></td><td><b>45 L</b></td><td><b>63 L</b></td><td><b>75 L</b></td><td><b>43 L</b></td><td><b>49 L</b></td><td><b>65 L</b></td><td><b>47 L</b></td><td><b>48 L</b></td><td><b>37 L</b></td></tr>
+                    <tr><td class="label">Auction Spent</td><td>0 L</td><td>0 L</td><td>0 L</td><td>0 L</td><td>0 L</td><td>0 L</td><td>0 L</td><td>0 L</td><td>0 L</td><td>0 L</td></tr>
+                    <tr><td class="label">Spent</td><td>24 L</td><td>35 L</td><td>18 L</td><td>5 L</td><td>37 L</td><td>31 L</td><td>15 L</td><td>33 L</td><td>32 L</td><td>43 L</td></tr>
+                </table>
+            </div>
+            <div class="table-section" style="margin-top: 32px;">
+                <table class="dashboard-table" id="position-table">
+                    <tr>
+                        <td class="label"></td>
+                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                    </tr>
+                    <tr><td class="label">Setter</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                    <tr><td class="label">Attacker</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                    <tr><td class="label">Libero</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                    <tr><td class="label">Middle Blocker</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                    <tr><td class="label">Universal</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                </table>
+            </div>
+            <div class="table-section" style="margin-top: 32px; display: flex; justify-content: center;">
+                <table class="dashboard-table" id="threat-table" style="width: 400px;">
+                    <tr>
+                        <th style="text-align: left; padding: 12px; background: #e44a22; color: white; border-radius: 8px 0 0 0;">Position</th>
+                        <th style="text-align: center; padding: 12px; background: #e44a22; color: white; border-radius: 0 8px 0 0;">Threat Level</th>
+                    </tr>
+                    <tr><td style="text-align: left; padding: 12px; border-bottom: 1px solid #333;">Setter</td><td style="text-align: center; padding: 12px; border-bottom: 1px solid #333;">-</td></tr>
+                    <tr><td style="text-align: left; padding: 12px; border-bottom: 1px solid #333;">Attacker</td><td style="text-align: center; padding: 12px; border-bottom: 1px solid #333;">-</td></tr>
+                    <tr><td style="text-align: left; padding: 12px; border-bottom: 1px solid #333;">Libero</td><td style="text-align: center; padding: 12px; border-bottom: 1px solid #333;">-</td></tr>
+                    <tr><td style="text-align: left; padding: 12px; border-bottom: 1px solid #333;">Middle Blocker</td><td style="text-align: center; padding: 12px; border-bottom: 1px solid #333;">-</td></tr>
+                    <tr><td style="text-align: left; padding: 12px; border-bottom: 1px solid #333;">Universal</td><td style="text-align: center; padding: 12px; border-bottom: 1px solid #333;">-</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- END: Home Page Dashboard Section -->
+<script type="module">
+// --- Firebase Web SDK Setup ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getFirestore, collection, getDocs, getDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBh_7ZytYqxX4mJv1jY-IUoWPnTPVbez5o",
+  authDomain: "ksg-auction.firebaseapp.com",
+  projectId: "ksg-auction",
+  storageBucket: "ksg-auction.appspot.com",
+  messagingSenderId: "978559404918",
+  appId: "1:978559404918:web:407a592decec1c88090857"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// --- Navigation ---
+function navigateToPage(page) {
+    switch(page) {
+        case 'home':
+            window.location.href = '/home_page';
+            break;
+        case 'teams':
+            window.location.href = '/teams';
+            break;
+        case 'preferences':
+            window.location.href = '/preferences';
+            break;
+        case 'auction':
+            window.location.href = '/auction';
+            break;
+        case 'budgeting':
+            window.location.href = '/budgeting';
+            break;
+        default:
+            console.log('Unknown page:', page);
+    }
+}
+window.navigateToPage = navigateToPage;
+
+// --- Position Table Data ---
+const defaultPositions = [
+    { label: 'Setter', count: 2 },
+    { label: 'Attacker', count: 4 },
+    { label: 'Middle Blocker', count: 4 },
+    { label: 'Libero', count: 2 },
+    { label: 'Universal', count: 2 }
+];
+
+function getInitialTableRows() {
+    const saved = localStorage.getItem('budgetingTableRows');
+    if (saved) return JSON.parse(saved);
+    let arr = [];
+    defaultPositions.forEach(pos => {
+        for (let i = 1; i <= pos.count; i++) {
+            arr.push({ position: pos.label, slot: i, player: '', price: '' });
+        }
+    });
+    return arr;
+}
+
+function saveTableRows(rows) {
+    localStorage.setItem('budgetingTableRows', JSON.stringify(rows));
+}
+
+let tableRows = getInitialTableRows();
+let hbhPlayersByPosition = {};
+
+// --- Fetch Hyderabad Black Hawks Players by Position ---
+async function fetchHBHPlayers() {
+    const players = [];
+    const playersRef = collection(db, 'HBH', 'roster', 'players');
+    const snapshot = await getDocs(playersRef);
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        players.push({ name: doc.id, position: data.position, price: data.price });
+    });
+    // Group by position (case-insensitive)
+    hbhPlayersByPosition = {};
+    players.forEach(player => {
+        const posKey = player.position ? player.position.toLowerCase() : '';
+        if (!hbhPlayersByPosition[posKey]) hbhPlayersByPosition[posKey] = [];
+        hbhPlayersByPosition[posKey].push(player);
+    });
+}
+
+// --- Render Table ---
+function renderPositionsTable() {
+    const container = document.getElementById('positionsTableContainer');
+    if (!container) return; // Prevent error if container is missing
+    let html = `<table class="positions-table">
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Position</th>
+                <th>Player Name</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody id="positionsTableBody">
+    `;
+    let totalSpent = 0;
+    tableRows.forEach((row, idx) => {
+        // Use case-insensitive key for position
+        const posKey = row.position ? row.position.toLowerCase() : '';
+        const posPlayers = hbhPlayersByPosition[posKey] || [];
+        html += `<tr class="drag-row" draggable="true" data-idx="${idx}">
+            <td>${idx + 1}</td>
+            <td>${row.position} ${row.slot}</td>
+            <td>
+                <select onchange="window.handlePlayerSelect(event, ${idx})">
+                    <option value="">-- Select Player --</option>`;
+        posPlayers.forEach(player => {
+            const selected = row.player === player.name ? 'selected' : '';
+            html += `<option value="${player.name}" ${selected}>${player.name}</option>`;
+        });
+        html += `</select>
+            </td>
+            <td>${row.price ? row.price : '-'} </td>
+        </tr>`;
+        if (row.price && !isNaN(parseFloat(row.price))) {
+            totalSpent += parseFloat(row.price);
+        }
+    });
+    // Add total purse left row
+    const openingBalance = 80;
+    const purseLeft = openingBalance - totalSpent;
+    html += `<tr style="background:#222;font-weight:bold;">
+        <td colspan="3" style="text-align:right;">Total Purse Left</td>
+        <td>${purseLeft.toFixed(2)} L</td>
+    </tr>`;
+    html += '</tbody></table>';
+    container.innerHTML = html;
+    addDragAndDropHandlers();
+    renderPreferencePlayersSection();
+}
+
+// --- Handle Player Selection ---
+window.handlePlayerSelect = function(event, idx) {
+    const playerName = event.target.value;
+    const row = tableRows[idx];
+    row.player = playerName;
+    // Use case-insensitive key for position
+    const posKey = row.position ? row.position.toLowerCase() : '';
+    const posPlayers = hbhPlayersByPosition[posKey] || [];
+    const player = posPlayers.find(p => p.name === playerName);
+    row.price = player ? player.price : '';
+    saveTableRows(tableRows);
+    renderPositionsTable();
+};
+
+// --- Drag-and-Drop Table Rows ---
+function addDragAndDropHandlers() {
+    const rows = document.querySelectorAll('.drag-row');
+    let dragSrcIdx = null;
+    rows.forEach(row => {
+        row.addEventListener('dragstart', function(e) {
+            dragSrcIdx = +this.dataset.idx;
+            this.classList.add('dragging');
+        });
+        row.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        });
+        row.addEventListener('dragleave', function(e) {
+            this.classList.remove('drag-over');
+        });
+        row.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const targetIdx = +this.dataset.idx;
+            if (dragSrcIdx !== null && dragSrcIdx !== targetIdx) {
+                const moved = tableRows.splice(dragSrcIdx, 1)[0];
+                tableRows.splice(targetIdx, 0, moved);
+                saveTableRows(tableRows);
+                renderPositionsTable();
+            }
+        });
+        row.addEventListener('dragend', function(e) {
+            document.querySelectorAll('.drag-row').forEach(r => r.classList.remove('dragging', 'drag-over'));
+            dragSrcIdx = null;
+        });
+    });
+}
+
+// --- Preference Players Section ---
+function getAllPreferences() {
+    // Try to load from localStorage (as in preferences.html)
+    const saved = localStorage.getItem('playerPreferences');
+    if (saved) return JSON.parse(saved);
+    return [];
+}
+
+function renderPreferencePlayersSection() {
+    let section = document.getElementById('preferencePlayersSection');
+    if (!section) {
+        section = document.createElement('div');
+        section.id = 'preferencePlayersSection';
+        section.style.marginTop = '32px';
+        section.style.background = '#181818';
+        section.style.borderRadius = '12px';
+        section.style.padding = '24px';
+        section.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+        section.innerHTML = '<div style="font-size:20px;font-weight:bold;color:#e44a22;margin-bottom:16px;">Preference Players & Team Interest</div>';
+        document.querySelector('.main-content').appendChild(section);
+    }
+    const preferences = getAllPreferences();
+    if (!preferences.length) {
+        section.innerHTML += '<div class="loading">No preference players found.</div>';
+        return;
+    }
+    let html = `<table class="positions-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Position</th>
+                <th>Preference</th>
+                <th>Category</th>
+            </tr>
+        </thead>
+        <tbody>
+    `;
+    // Placeholder: All teams, fake interest and bid
+    const teamAbbrs = ["AD", "BT", "CH", "CB", "DT", "HBH", "KBS", "KT", "MM", "GG"];
+    preferences.forEach((player, idx) => {
+        const category = player.category || '-';
+        html += `<tr class="pref-player-row" data-idx="${idx}" style="cursor:pointer;">
+            <td>${player.name}</td>
+            <td>${player.position}</td>
+            <td>${player.preference}</td>
+            <td>${category}</td>
+        </tr>
+        <tr class="pref-player-details" id="pref-player-details-${idx}" style="display:none;background:#222;">
+            <td colspan="4">
+                <div id="pref-player-details-content-${idx}"></div>
+            </td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    section.innerHTML = '<div style="font-size:20px;font-weight:bold;color:#e44a22;margin-bottom:16px;">Preference Players & Team Interest</div>' + html;
+
+    // Add click handlers for expanding/collapsing rows
+    document.querySelectorAll('.pref-player-row').forEach(row => {
+        row.addEventListener('click', async function() {
+            const idx = this.getAttribute('data-idx');
+            const detailsRow = document.getElementById('pref-player-details-' + idx);
+            const contentDiv = document.getElementById('pref-player-details-content-' + idx);
+            if (detailsRow.style.display === 'none') {
+                // Show details
+                const player = preferences[idx];
+                // Fetch teams from favorites collection
+                let interestedTeams = [];
+                try {
+                    const favDoc = await getDoc(doc(db, 'favorites', player.name));
+                    if (favDoc.exists()) {
+                        const favData = favDoc.data();
+                        if (Array.isArray(favData.teams)) {
+                            interestedTeams = favData.teams;
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+                let bids = '';
+                if (interestedTeams.length > 0) {
+                    // Map team names to image filenames (lowercase, no spaces, e.g., 'Mumbai Meteors' -> 'mumbai.png')
+                    const teamLogoMap = {
+                        'Ahmedabad Defenders': 'ahmedabad.png',
+                        'Bengaluru Torpedoes': 'bengaluru.png',
+                        'Calicut Heroes': 'calicut.png',
+                        'Chennai Blitz': 'chennai.png',
+                        'Delhi Toofans': 'delhi.png',
+                        'Goa': 'goa.png',
+                        'Goa Guardians': 'goa.png',
+                        'Hyderabad Black Hawks': 'hyderabad.png',
+                        'Kochi Blue Spikers': 'kochi.png',
+                        'Kolkata ThunderBolts': 'kolkata.png',
+                        'Kolkata Thunderbolts': 'kolkata.png',
+                        'Mumbai Meteors': 'mumbai.png'
+                    };
+                    // Always add Hyderabad Black Hawks
+                    const hbhLogo = teamLogoMap['Hyderabad Black Hawks'];
+                    const hbhRecommendedPrice = '—'; // Placeholder, to be replaced with formula
+                    let hbhBlock = `<div style="display:flex;flex-direction:column;align-items:center;min-width:120px;margin-left:32px;">
+                        <div style='width:90px;height:90px;background:#111;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;'>
+                            <img src='/static/images/${hbhLogo}' alt='Hyderabad Black Hawks' style='width:80px;height:80px;object-fit:contain;'>
+                        </div>
+                        <div style='font-weight:bold;color:#e44a22;text-align:center;'>Hyderabad Black Hawks</div>
+                        <div style='margin-top:4px;font-size:20px;color:#ffd700;font-weight:bold;'>${hbhRecommendedPrice} <span style="font-size:13px;color:#aaa;">(Recommended)</span></div>
+                    </div>`;
+                    bids = '<div style="display:flex;justify-content:center;gap:48px;flex-wrap:wrap;width:100%;align-items:center;">' +
+                        '<div style="display:flex;gap:48px;flex-wrap:wrap;">' +
+                        interestedTeams.map(t => {
+                            const logo = teamLogoMap[t] || 'default.png';
+                            const price = (Math.random()*10+5).toFixed(2) + 'L';
+                            return `<div style="display:flex;flex-direction:column;align-items:center;min-width:120px;">
+                                <div style='width:90px;height:90px;background:#111;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;'>
+                                    <img src='/static/images/${logo}' alt='${t}' style='width:80px;height:80px;object-fit:contain;'>
+                                </div>
+                                <div style='font-weight:bold;color:#e44a22;text-align:center;'>${t}</div>
+                                <div style='margin-top:4px;font-size:20px;color:#4caf50;'>${price}</div>
+                            </div>`;
+                        }).join('') +
+                        '</div>' +
+                        '<div style="height:100px;width:2px;background:#444;margin:0 32px;align-self:stretch;"></div>' +
+                        hbhBlock +
+                        '</div>';
+                } else {
+                    bids = 'No teams interested.';
+                }
+                contentDiv.innerHTML = `<b>Teams Interested:</b><br>${bids}`;
+                detailsRow.style.display = '';
+            } else {
+                detailsRow.style.display = 'none';
+            }
+        });
+    });
+}
+
+// --- Initialize ---
+async function initialize() {
+    await fetchHBHPlayers();
+    renderPositionsTable();
+}
+initialize();
+
+async function searchAndDisplayPlayer() {
+    const queryRaw = document.getElementById('searchBar').value.trim();
+    const searchTerm = queryRaw.toLowerCase();
+    const resultDiv = document.getElementById('playerSearchResult');
+    if (!queryRaw) {
+        resultDiv.innerHTML = '<div class="loading">Search for a player to see details.</div>';
+        return;
+    }
+    // Fetch all players
+    const playersCollectionRef = collection(db, 'players');
+    const playersSnapshot = await getDocs(playersCollectionRef);
+    let matchedPlayer = null;
+    playersSnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        // Name match (case-insensitive substring)
+        if (data.name && data.name.toLowerCase().includes(searchTerm)) {
+            matchedPlayer = data;
+            matchedPlayer._id = docSnap.id;
+        }
+    });
+    if (!matchedPlayer) {
+        // If the search term is a number, do an exact match for player_number
+        const searchNum = Number(searchTerm);
+        if (!isNaN(searchNum)) {
+            playersSnapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                if (data.player_number && data.player_number === searchNum) {
+                    matchedPlayer = data;
+                    matchedPlayer._id = docSnap.id;
+                }
+            });
+            // If found by number, set search bar to name and call displayPlayerList
+            if (matchedPlayer) {
+                document.getElementById('searchBar').value = matchedPlayer._id;
+                displayPlayerList();
+                return;
+            }
+        }
+    }
+    // After finding matchedPlayer (by name or number), always use the same display logic
+    if (!matchedPlayer) {
+        resultDiv.innerHTML = '<div class="error">Player not found.</div>';
+        return;
+    }
+    // If you have any calculation logic for price or other fields, call it here for matchedPlayer
+    // Example: matchedPlayer.price = calculateW(...)
+    // Display player info (unified for both search types)
+    let playerTitle = matchedPlayer.name ? `${matchedPlayer.name}` : (matchedPlayer._id || queryRaw);
+    if (matchedPlayer.player_number) {
+        playerTitle += ` (No. ${matchedPlayer.player_number})`;
+    }
+    let html = `<div style="background:#181818;padding:24px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-width:600px;margin:auto;">
+        <div style="font-size:24px;font-weight:bold;margin-bottom:12px;">${playerTitle}</div>
+        <div>Position: <b>${matchedPlayer.position || '-'}</b></div>
+        <div>Category: <b>${matchedPlayer.category || '-'}</b></div>
+        <div>Price: <b>${matchedPlayer.price || '-'}</b></div>
+        <div>Interest: <b style="color:${matchedPlayer.intrest ? '#4caf50' : '#f44336'};font-weight:bold;">${matchedPlayer.intrest ? 'True' : 'False'}</b></div>
+    </div>`;
+    // Show teams interested (favorites) and HBH recommended price
+    let interestedTeams = [];
+    try {
+        const favDoc = await getDoc(doc(db, 'favorites', matchedPlayer._id || queryRaw));
+        if (favDoc.exists()) {
+            const favData = favDoc.data();
+            if (Array.isArray(favData.teams)) {
+                interestedTeams = favData.teams;
+            }
+        }
+    } catch (e) { /* ignore */ }
+    // Team logo map
+    const teamLogoMap = {
+    'Ahmedabad Defenders': '/static/images/ahmedabad.png',
+    'Bengaluru Torpedoes': '/static/images/bengaluru.png',
+    'Calicut Heroes': '/static/images/calicut.png',
+    'Chennai Blitz': '/static/images/chennai.png',
+    'Delhi Toofans': '/static/images/delhi.png',
+    'Goa': '/static/images/goa.png',
+    'Goa Guardians': '/static/images/goa.png',
+    'Hyderabad Black Hawks': '/static/images/hyderabad.png',
+    'Kochi Blue Spikers': '/static/images/kochi.png',
+    'Kolkata ThunderBolts': '/static/images/kolkata.png',
+    'Kolkata Thunderbolts': '/static/images/kolkata.png',
+    'Mumbai Meteors': '/static/images/mumbai.png'
+    };
+    // HBH block
+    const hbhLogo = teamLogoMap['Hyderabad Black Hawks'];
+    const hbhRecommendedPrice = '—'; // Placeholder
+    let hbhBlock = `<div style="display:flex;flex-direction:column;align-items:center;min-width:120px;margin-left:32px;">
+        <div style='width:90px;height:90px;background:#111;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;'>
+            <img src='/static/images/${hbhLogo}' alt='Hyderabad Black Hawks' style='width:80px;height:80px;object-fit:contain;'>
+        </div>
+        <div style='font-weight:bold;color:#e44a22;text-align:center;'>Hyderabad Black Hawks</div>
+        <div style='margin-top:4px;font-size:20px;color:#ffd700;font-weight:bold;'>${hbhRecommendedPrice} <span style="font-size:13px;color:#aaa;">(Recommended)</span></div>
+    </div>`;
+    let bids = '';
+    if (interestedTeams.length > 0) {
+        bids = '<div style="display:flex;justify-content:center;gap:48px;flex-wrap:wrap;width:100%;align-items:center;">' +
+            '<div style="display:flex;gap:48px;flex-wrap:wrap;">' +
+            interestedTeams.map(t => {
+                const logo = teamLogoMap[t] || 'default.png';
+                const price = (Math.random()*10+5).toFixed(2) + 'L';
+                return `<div style="display:flex;flex-direction:column;align-items:center;min-width:120px;">
+                    <div style='width:90px;height:90px;background:#111;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;'>
+                        <img src='/static/images/${logo}' alt='${t}' style='width:80px;height:80px;object-fit:contain;'>
+                    </div>
+                    <div style='font-weight:bold;color:#e44a22;text-align:center;'>${t}</div>
+                    <div style='margin-top:4px;font-size:20px;color:#4caf50;'>${price}</div>
+                </div>`;
+            }).join('') +
+            '</div>' +
+            '<div style="height:100px;width:2px;background:#444;margin:0 32px;align-self:stretch;"></div>' +
+            hbhBlock +
+            '</div>';
+    } else {
+        bids = '<div style="display:flex;justify-content:center;align-items:center;gap:48px;width:100%;">' +
+            '<div style="color:#888;font-size:18px;">No teams interested.</div>' +
+            '<div style="height:100px;width:2px;background:#444;margin:0 32px;align-self:stretch;"></div>' +
+            hbhBlock +
+            '</div>';
+    }
+    html += `<div style="margin-top:32px;"><b>Teams Interested:</b><br>${bids}</div>`;
+    resultDiv.innerHTML = html;
+}
+window.searchAndDisplayPlayer = searchAndDisplayPlayer;
+
+// --- Populate player name suggestions for search bar ---
+async function populatePlayerNameSuggestions() {
+    const datalist = document.getElementById('playerNameSuggestions');
+    datalist.innerHTML = '';
+    const playersCollectionRef = collection(db, 'players');
+    const playersSnapshot = await getDocs(playersCollectionRef);
+    playersSnapshot.forEach(docSnap => {
+        const option = document.createElement('option');
+        option.value = docSnap.id;
+        datalist.appendChild(option);
+    });
+}
+populatePlayerNameSuggestions();
+
+// --- Show suggestions as user types ---
+function showSuggestions() {
+    // This is handled by the datalist, so no extra JS needed here for now
+}
+
+// --- Utility: Category Multiplier ---
+function getCategoryMultiplier(category) {
+  switch ((category || '').toLowerCase()) {
+    case 'bronze': return 0.4;
+    case 'silver': return 0.6;
+    case 'gold': return 0.8;
+    case 'platinum': return 1.0;
+    default: return 1.0;
+  }
+}
+
+// --- Utility: Calculate Need Factor (N) ---
+function calculateN(roster, player, teamAbbr) {
+    const position = (player.position || '').toLowerCase();
+    // Position requirements
+    const maxAllowed = {
+        'setter': 2,
+        'attacker': 4,
+        'libero': 2,
+        'middle blocker': 4,
+        'middleblocker': 4,
+        'universal': 2
+    };
+    // Count filled positions (normalize for spaces)
+    let filledCount = 0;
+    if (roster && Array.isArray(roster)) {
+        roster.forEach(p => {
+            if (((p.position || '').replace(/ /g, '').toLowerCase()) === position.replace(/ /g, '')) {
+                filledCount++;
+            }
+        });
+    }
+    const maxAllowedForPosition = maxAllowed[position] || 2;
+    // Priority logic
+    let priority = 1; // Default priority
+    let maxRank = 10; // Default max rank
+    if (teamAbbr === 'HBH') {
+        // For HBH, get priority from preferences (drag & drop order)
+        const preferences = getAllPreferences();
+        const positionPreferences = preferences
+            .filter(p => (p.position || '').toLowerCase() === position)
+            .sort((a, b) => (a.preference || 99) - (b.preference || 99));
+        if (positionPreferences.length > 0) {
+            priority = positionPreferences[0].preference || 1;
+        }
+    } else {
+        // For other teams, use the fixed ranking list
+        const rankingList = [
+            'setter', 'attacker', 'middleblocker', 'libero', 'universal',
+            'setter', 'attacker', 'middleblocker', 'libero', 'universal'
+        ];
+        // Normalize position for matching
+        const normPos = position.replace(/ /g, '');
+        let count = 0;
+        for (let i = 0; i < rankingList.length; i++) {
+            if (rankingList[i] === normPos) {
+                count++;
+                if (count === filledCount + 1) {
+                    priority = i + 1; // 1-based index
+                    break;
+                }
+            }
+        }
+        // If not found, fallback to maxRank
+        if (count < filledCount + 1) {
+            priority = maxRank;
+        }
+    }
+    // Calculate N using the formula: N = (1 - (filled_count / max_allowed)) * (1 - ((priority - 1) / (max_rank - 1)))
+    const needTerm = 1 - (filledCount / maxAllowedForPosition);
+    const priorityTerm = 1 - ((priority - 1) / (maxRank - 1));
+    const N = needTerm * priorityTerm;
+    return Math.max(0, N); // Ensure N is not negative
+}
+
+// --- Utility: Calculate W (Willing Price) ---
+function calculateW(finance, roster, player, N, R, k) {
+    const F = finance.fighting_balance || 80;
+    const B = finance.purse || 0;
+    const C = getCategoryMultiplier(player.category);
+    const P = 10 - (roster ? roster.length : 0);
+    // Avoid division by zero
+    const denom = P > 0 ? P : 1;
+    const W = Math.min(F, (B * N * C * (1 + R) * k) / denom);
+    return Math.max(W, parseFloat(player.price) || 0);
+}
+
+// --- Utility: Calculate Dynamic Weights (w1, w2, w3, w4) ---
+let T_high_cache = null; // Cache for total top-tier players at auction start
+
+async function calculateWeights(allFinances, allPlayers, allTeamRosters, player, teamAbbr) {
+    // --- w1: Balance Pressure Weight ---
+    const epsilon = 0.01;
+    let purses = [];
+    for (const abbr in allFinances) {
+        if (allFinances[abbr] && typeof allFinances[abbr].purse === 'number') {
+            purses.push(allFinances[abbr].purse);
+        }
+    }
+    const B_max = Math.max(...purses);
+    const B_min = Math.min(...purses);
+    const Bbar = purses.reduce((a, b) => a + b, 0) / purses.length;
+    const w1 = Math.min(1.0, (B_max - B_min) / (Bbar + epsilon));
+
+    // --- w2: Category Urgency Weight ---
+    // Gold/Platinum players
+    const isTopTier = p => {
+        const cat = (p.category || '').toLowerCase();
+        return cat === 'gold' || cat === 'platinum';
+    };
+    if (T_high_cache === null) {
+        T_high_cache = allPlayers.filter(isTopTier).length;
+    }
+    // Top-tier left: not assigned to any team (not in any team roster)
+    const allRosteredPlayerIds = new Set();
+    for (const abbr in allTeamRosters) {
+        allTeamRosters[abbr].forEach(p => allRosteredPlayerIds.add(p.id));
+    }
+    const T_high_left = allPlayers.filter(p => isTopTier(p) && !allRosteredPlayerIds.has(p.id)).length;
+    const w2 = 1 - (T_high_left / (T_high_cache || 1));
+
+    // --- w3: Positional Scarcity Weight ---
+    // For the relevant position
+    const position = (player.position || '').replace(/ /g, '').toLowerCase();
+    const maxAllowed = {
+        'setter': 2,
+        'attacker': 4,
+        'libero': 2,
+        'middleblocker': 4,
+        'middle blocker': 4,
+        'universal': 2
+    };
+    let w3 = 0;
+    for (const abbr in allTeamRosters) {
+        let count = 0;
+        allTeamRosters[abbr].forEach(p => {
+            const pPos = (p.position || '').replace(/ /g, '').toLowerCase();
+            if (pPos === position) count++;
+        });
+        const max = maxAllowed[position] || 1;
+        w3 += 1 - (count / max);
+    }
+    // Total number of teams is 10
+    // (w3 is the sum, not normalized)
+
+    // --- w4: Auction Progress Weight ---
+    // Players left to buy for this team
+    const roster = allTeamRosters[teamAbbr] || [];
+    const totalNeeded = 10; // Assuming full roster size is 10
+    const playersLeftToBuy = totalNeeded - roster.length;
+    const w4 = playersLeftToBuy / totalNeeded;
+
+    return { w1, w2, w3, w4 };
+}
+
+// --- Utility: Calculate Aggression Coefficient (k) ---
+async function calculateK(finance, allFinances, allPlayers, allTeamRosters, player, N, teamAbbr) {
+    const { w1, w2, w3, w4 } = await calculateWeights(allFinances, allPlayers, allTeamRosters, player, teamAbbr);
+    // B: team's current purse
+    const B = finance.purse || 0;
+    // B̄: average purse across all teams
+    let totalPurse = 0, teamCount = 0;
+    for (const abbr in allFinances) {
+        if (allFinances[abbr] && typeof allFinances[abbr].purse === 'number') {
+            totalPurse += allFinances[abbr].purse;
+            teamCount++;
+        }
+    }
+    const Bbar = teamCount > 0 ? totalPurse / teamCount : 1;
+    // C: category multiplier
+    const C = getCategoryMultiplier(player.category);
+    // posLeft: sum over all positions (number in position / max allowed)
+    const maxAllowed = {
+        'setter': 2,
+        'attacker': 4,
+        'libero': 2,
+        'middleblocker': 4,
+        'middle blocker': 4,
+        'universal': 2
+    };
+    const positions = ['setter', 'attacker', 'middleblocker', 'libero', 'universal'];
+    let posLeft = 0;
+    if (allTeamRosters[teamAbbr] && Array.isArray(allTeamRosters[teamAbbr])) {
+        const roster = allTeamRosters[teamAbbr];
+        for (const pos of positions) {
+            let count = 0;
+            roster.forEach(p => {
+                const pPos = (p.position || '').replace(/ /g, '').toLowerCase();
+                if (pPos === pos) count++;
+            });
+            const max = maxAllowed[pos] || 1;
+            posLeft += count / max;
+        }
+    }
+    // T: total number of team positions
+    const T = 5;
+    // k formula
+    let k = 1 + ((B - Bbar) / Bbar) * w1 + (C - 1) * w2 + N * w3 - (posLeft / T) * w4;
+    // Clamp k
+    k = Math.max(0.8, Math.min(k, 1.5));
+    return k;
+}
+
+// --- Utility: Position Requirements ---
+const positionRequirements = {
+    'Setter': 2,
+    'Attacker': 4,
+    'Libero': 2,
+    'Middle Blocker': 4,
+    'Universal': 2
+};
+
+// Add team name to abbreviation mapping (all keys normalized: lowercase, no spaces)
+const teamNameToAbbr = {
+  'ahmedabaddefenders': 'AD',
+  'bengalurutorpedoes': 'BT',
+  'calicutheroes': 'CH',
+  'chennaiblitz': 'CB',
+  'delhitoofans': 'DT',
+  'goa': 'GG',
+  'hyderabadblackhawks': 'HBH',
+  'kochibluespikers': 'KBS',
+  'kolkatathunderbolts': 'KT',
+  'mumbaimeteors': 'MM'
+};
+function normalizeTeamName(name) {
+  return name.trim().toLowerCase().replace(/\s+/g, '');
+}
+
+// --- Utility: Get all teams ---
+const teamAbbrs = ["AD", "BT", "CH", "CB", "DT", "HBH", "KBS", "KT", "MM", "GG"];
+
+// --- Data caches ---
+let allPlayersCache = null;
+let allFinancesCache = null;
+let allTeamRostersCache = null;
+
+// --- Fetch all players ONCE ---
+async function getAllPlayers() {
+    if (allPlayersCache) return allPlayersCache;
+    const playersCollectionRef = collection(db, 'players');
+    const playersSnapshot = await getDocs(playersCollectionRef);
+    const allPlayers = [];
+    playersSnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        allPlayers.push({ id: docSnap.id, ...data });
+    });
+    allPlayersCache = allPlayers;
+    return allPlayers;
+}
+
+// --- Fetch all finances ONCE ---
+async function getAllFinances() {
+    if (allFinancesCache) return allFinancesCache;
+    const finances = {};
+    for (const abbr of teamAbbrs) {
+        try {
+            const financesDocRef = doc(db, abbr, "finances");
+            const financesSnap = await getDoc(financesDocRef);
+            if (financesSnap.exists()) {
+                finances[abbr] = financesSnap.data();
+            } else {
+                finances[abbr] = {};
+            }
+        } catch (e) {
+            finances[abbr] = {};
+        }
+    }
+    allFinancesCache = finances;
+    return finances;
+}
+
+// --- Fetch all team rosters ONCE ---
+async function getAllTeamRosters() {
+    if (allTeamRostersCache) return allTeamRostersCache;
+    const rosters = {};
+    for (const abbr of teamAbbrs) {
+        const playersRef = collection(db, abbr, "roster", "players");
+        const playersSnap = await getDocs(playersRef);
+        rosters[abbr] = [];
+        playersSnap.forEach(docSnap => {
+            const data = docSnap.data();
+            rosters[abbr].push({ ...data, id: docSnap.id });
+        });
+    }
+    allTeamRostersCache = rosters;
+    return rosters;
+}
+
+// --- Fetch favorites ONLY on demand (e.g., on click) ---
+async function getFavoritesForPlayer(playerId) {
+    const favDoc = await getDoc(doc(db, 'favorites', playerId));
+    if (favDoc.exists()) {
+        return favDoc.data().teams || [];
+    }
+    return [];
+}
+
+// --- Main Player List Display ---
+async function displayPlayerList() {
+    // Fetch all data ONCE per page load
+    const [players, finances, teamRosters] = await Promise.all([
+        getAllPlayers(),
+        getAllFinances(),
+        getAllTeamRosters()
+    ]);
+    const preferences = getAllPreferences();
+    const search = document.getElementById('searchBar').value.trim().toLowerCase();
+    const category = document.getElementById('categoryFilter').value.toLowerCase();
+    const position = document.getElementById('positionFilter').value.toLowerCase();
+    let filteredPlayers;
+    if (!search && !category && !position) {
+        // Default: show only players with a preference
+        filteredPlayers = preferences.map(pref => {
+            const player = players.find(p => p.id === pref.name);
+            return player ? { ...player, preference: parseInt(pref.preference) } : null;
+        }).filter(Boolean);
+    } else {
+        // Show all players matching search/filter
+        filteredPlayers = players.filter(p => {
+            let match = true;
+            if (search && !p.id.toLowerCase().includes(search)) match = false;
+            if (category && (p.category || '').toLowerCase() !== category) match = false;
+            if (position && (p.position || '').toLowerCase() !== position) match = false;
+            return match;
+        });
+    }
+    // If searching for an exact player, show the old card format
+    if (search && filteredPlayers.length === 1 && filteredPlayers[0].id.toLowerCase() === search) {
+        const player = filteredPlayers[0];
+        let html = `<div style="background:#181818;padding:24px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-width:600px;margin:auto;">
+            <div style="font-size:24px;font-weight:bold;margin-bottom:12px;">${player.id}</div>
+            <div>Position: <b>${player.position || '-'}</b></div>
+            <div>Category: <b>${player.category || '-'}</b></div>
+            <div>Price: <b>${player.price || '-'}</b></div>
+            <div>Preference: <b>${player.preference || '-'}</b></div>
+        </div>`;
+        Promise.all([
+            getFavoritesForPlayer(player.id),
+            Promise.resolve(finances),
+            Promise.resolve(teamRosters)
+        ]).then(async ([teams, finances, teamRosters]) => {
+            const teamLogoMap = {
+                'Ahmedabad Defenders': 'ahmedabad.png',
+                'Bengaluru Torpedoes': 'bengaluru.png',
+                'Calicut Heroes': 'calicut.png',
+                'Chennai Blitz': 'chennai.png',
+                'Delhi Toofans': 'delhi.png',
+                'Goa': 'goa.png',
+                'Goa Guardians': 'goa.png',
+                'Hyderabad Black Hawks': 'hyderabad.png',
+                'Kochi Blue Spikers': 'kochi.png',
+                'Kolkata ThunderBolts': 'kolkata.png',
+                'Kolkata Thunderbolts': 'kolkata.png',
+                'Mumbai Meteors': 'mumbai.png'
+            };
+            let bids = '';
+            let maxBid = 0;
+            const filteredTeams = teams.filter(t => t !== 'Hyderabad Black Hawks');
+            if (filteredTeams.length > 0) {
+                bids = '<div style="display:flex;justify-content:center;gap:48px;flex-wrap:wrap;width:100%;align-items:center;">' +
+                    '<div style="display:flex;gap:48px;flex-wrap:wrap;">' +
+                    (await Promise.all(filteredTeams.map(async t => {
+                        // Calculate N, R, k
+                        const normalizedTeamName = normalizeTeamName(t);
+                        const teamAbbr = teamNameToAbbr[normalizedTeamName] || teamAbbrs.find(abbr => normalizedTeamName.includes(abbr.toLowerCase()));
+                        const finance = finances[teamAbbr] || {};
+                        const roster = teamRosters[teamAbbr] || [];
+                        const N = calculateN(roster, player, teamAbbr);
+                        const R = 0.5; // Placeholder for R
+                        const k = await calculateK(finance, finances, players, teamRosters, player, N, teamAbbr);
+                        const price = calculateW(finance, roster, player, N, R, k);
+                        if (price > maxBid) maxBid = price;
+                        const logo = teamLogoMap[t] || 'default.png';
+                        return `<div style="display:flex;flex-direction:column;align-items:center;min-width:120px;">
+                            <div style='width:90px;height:90px;background:#111;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;'>
+                                <img src='/static/images/${logo}' alt='${t}' style='width:80px;height:80px;object-fit:contain;'>
+                            </div>
+                            <div style='font-weight:bold;color:#e44a22;text-align:center;'>${t}</div>
+                            <div style='margin-top:4px;font-size:20px;color:#ffd700;font-weight:bold;'>${price.toFixed(2)} L</div>
+                        </div>`;
+                    }))).join('') +
+                    '</div>' +
+                    '</div>';
+            } else {
+                bids = '<div style="color:#888;font-size:18px;text-align:center;margin-top:16px;">No teams interested.</div>';
+            }
+            // Calculate HBH's W (ideal value)
+            const hbhFinance = finances['HBH'];
+            const hbhRoster = teamRosters['HBH'];
+            const N_HBH = calculateN(hbhRoster, player, 'HBH');
+            const k_HBH = await calculateK(hbhFinance, finances, players, teamRosters, player, N_HBH, 'HBH');
+            const W_HBH = calculateW(hbhFinance, hbhRoster, player, N_HBH, 0.5, k_HBH);
+            const hbhIdeal = W_HBH.toFixed(2);
+            const hbhWinning = maxBid + 2;
+            let hbhBlock = `<div style='margin-top:32px;display:flex;flex-direction:column;align-items:center;'>
+                <div style='font-size:18px;font-weight:bold;color:#e44a22;margin-bottom:8px;'>Hyderabad Black Hawks</div>
+                <div style='width:90px;height:90px;background:#111;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;'>
+                    <img src='/static/images/hyderabad.png' alt='Hyderabad Black Hawks' style='width:80px;height:80px;object-fit:contain;'>
+                </div>
+                <div style='display:flex;gap:32px;'>
+                    <div style='background:#222;padding:16px 32px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.2);text-align:center;'>
+                        <div style='font-size:15px;color:#aaa;'>Ideal Value</div>
+                        <div style='font-size:24px;font-weight:bold;color:#ffd700;'>${hbhIdeal} L</div>
+                    </div>
+                    <div style='background:#222;padding:16px 32px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.2);text-align:center;'>
+                        <div style='font-size:15px;color:#aaa;'>Winning Bid</div>
+                        <div style='font-size:24px;font-weight:bold;color:#4caf50;'>${hbhWinning} L</div>
+                    </div>
+                </div>
+            </div>`;
+            html += `<div style="margin-top:32px;"><b>Teams Interested:</b><br>${bids}</div>${hbhBlock}`;
+            document.getElementById('playerSearchResult').innerHTML = html;
+        });
+        return;
+    }
+    // Otherwise, show the table format
+    filteredPlayers.sort((a, b) => (a.preference || 99) - (b.preference || 99));
+    let html = `<table class="positions-table"><thead><tr><th>Name</th><th>Position</th><th>Category</th><th>Preference</th><th>Interested Teams</th></tr></thead><tbody>`;
+    for (const player of filteredPlayers) {
+        html += `<tr><td>${player.id}</td><td>${player.position || '-'} </td><td>${player.category || '-'} </td><td>${player.preference || '-'} </td><td id="fav-${player.id.replace(/[^a-zA-Z0-9]/g, '')}"><div style='min-width:120px;'>Loading...</div></td></tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('playerSearchResult').innerHTML = html;
+    const teamLogoMap = {
+        'Ahmedabad Defenders': 'ahmedabad.png',
+        'Bengaluru Torpedoes': 'bengaluru.png',
+        'Calicut Heroes': 'calicut.png',
+        'Chennai Blitz': 'chennai.png',
+        'Delhi Toofans': 'delhi.png',
+        'Goa': 'goa.png',
+        'Goa Guardians': 'goa.png',
+        'Hyderabad Black Hawks': 'hyderabad.png',
+        'Kochi Blue Spikers': 'kochi.png',
+        'Kolkata ThunderBolts': 'kolkata.png',
+        'Kolkata Thunderbolts': 'kolkata.png',
+        'Mumbai Meteors': 'mumbai.png'
+    };
+    // Fetch finances and rosters ONCE for all teams
+    for (const player of filteredPlayers) {
+        getFavoritesForPlayer(player.id).then(async teams => {
+            const cell = document.getElementById('fav-' + player.id.replace(/[^a-zA-Z0-9]/g, ''));
+            if (cell) {
+                const filteredTeams = teams.filter(t => t !== 'Hyderabad Black Hawks');
+                if (filteredTeams.length > 0) {
+                    cell.innerHTML = `<div style='display:flex;gap:16px;flex-wrap:wrap;'>` +
+                        (await Promise.all(filteredTeams.map(async t => {
+                            const normalizedTeamName = normalizeTeamName(t);
+                            const teamAbbr = teamNameToAbbr[normalizedTeamName] || teamAbbrs.find(abbr => normalizedTeamName.includes(abbr.toLowerCase()));
+                            const logo = teamLogoMap[t] || 'default.png';
+                            // Calculate N, R, k
+                            const finance = finances[teamAbbr] || {};
+                            const roster = teamRosters[teamAbbr] || [];
+                            const N = calculateN(roster, player, teamAbbr);
+                            const R = 0.5; // Placeholder for R
+                            const k = await calculateK(finance, finances, players, teamRosters, player, N, teamAbbr);
+                            const price = calculateW(finance, roster, player, N, R, k);
+                            return `<div style='display:flex;flex-direction:column;align-items:center;min-width:90px;'>
+                                <div style='width:48px;height:48px;background:#111;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;'>
+                                    <img src='/static/images/${logo}' alt='${t}' style='width:40px;height:40px;object-fit:contain;'>
+                                </div>
+                                <div style='font-size:13px;font-weight:bold;color:#e44a22;text-align:center;'>${t}</div>
+                                <div style='margin-top:2px;font-size:13px;color:#ffd700;font-weight:bold;'>${price.toFixed(2)} L</div>
+                            </div>`;
+                        }))).join('') +
+                        `</div>`;
+                } else {
+                    cell.innerHTML = '<span style="color:#888;">No teams interested.</span>';
+                }
+            }
+        });
+    }
+}
+
+// --- Hook up filters ---
+document.getElementById('searchBar').addEventListener('input', displayPlayerList);
+document.getElementById('categoryFilter').addEventListener('change', displayPlayerList);
+document.getElementById('positionFilter').addEventListener('change', displayPlayerList);
+document.getElementById('searchButton').addEventListener('click', searchAndDisplayPlayer);
+document.getElementById('searchBar').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        searchAndDisplayPlayer();
+    }
+});
+
+// --- Initial display ---
+displayPlayerList();
+
+// --- Home Page Dashboard Section Script ---
+const positions = ["Setter", "Attacker", "Libero", "Middle Blocker", "Universal"];
+const fieldMap = [
+  { label: "Opening", field: "opening_balance" },
+  { label: "Balance", field: "purse" },
+  { label: "Auction Spent", field: "auction_spent" },
+  { label: "Spent", field: "overall_spent" }
+];
+
+async function fetchFinancialData() {
+  const teamData = {};
+  for (const abbr of teamAbbrs) {
+    try {
+      const financesDocRef = doc(db, abbr, "finances");
+      const financesSnap = await getDoc(financesDocRef);
+      if (financesSnap.exists()) {
+        teamData[abbr] = financesSnap.data();
+      } else {
+        teamData[abbr] = {};
+      }
+    } catch (e) {
+      teamData[abbr] = {};
+    }
+  }
+  return teamData;
+}
+
+function fillFinancialTable(teamData) {
+  const table = document.getElementById("financial-table");
+  if (!table) return;
+  while (table.rows.length > 1) table.deleteRow(1);
+  for (const { label, field } of fieldMap) {
+    const tr = document.createElement("tr");
+    const tdLabel = document.createElement("td");
+    tdLabel.className = "label";
+    tdLabel.textContent = label;
+    tr.appendChild(tdLabel);
+    for (const abbr of teamAbbrs) {
+      const td = document.createElement("td");
+      let value = teamData[abbr]?.[field];
+      if (value === undefined || value === null) value = "-";
+      else if (!isNaN(value) && value !== "-") value = value + " L";
+      td.textContent = value;
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+}
+
+async function fetchPositionData() {
+  const teamPositionCounts = {};
+  for (const abbr of teamAbbrs) {
+    teamPositionCounts[abbr] = {
+      "Setter": 0,
+      "Attacker": 0,
+      "Libero": 0,
+      "Middle Blocker": 0,
+      "Universal": 0
+    };
+  }
+  for (const abbr of teamAbbrs) {
+    try {
+      const playersCollectionRef = collection(db, abbr, "roster", "players");
+      const playersSnapshot = await getDocs(playersCollectionRef);
+      teamPositionCounts[abbr] = {
+        "Setter": 0,
+        "Attacker": 0,
+        "Libero": 0,
+        "Middle Blocker": 0,
+        "Universal": 0
+      };
+      playersSnapshot.forEach((playerDoc) => {
+        const playerData = playerDoc.data();
+        if (playerData && playerData.position) {
+          const position = playerData.position;
+          const normalizedPosition = position.trim().toLowerCase();
+          const positionMatches = {
+            "setter": "Setter",
+            "attacker": "Attacker", 
+            "libero": "Libero",
+            "middle blocker": "Middle Blocker",
+            "middleblocker": "Middle Blocker",
+            "universal": "Universal"
+          };
+          const matchedPosition = positionMatches[normalizedPosition];
+          if (matchedPosition && teamPositionCounts[abbr].hasOwnProperty(matchedPosition)) {
+            teamPositionCounts[abbr][matchedPosition]++;
+          }
+        }
+      });
+    } catch (e) {
+      console.error(`Error fetching data for team ${abbr}:`, e);
+    }
+  }
+  return teamPositionCounts;
+}
+
+function fillPositionTable(teamPositionCounts) {
+  const tables = document.querySelectorAll("table.dashboard-table");
+  const positionTable = document.getElementById("position-table");
+  if (!positionTable) {
+    console.error("Position table not found!");
+    return;
+  }
+  const rows = positionTable.querySelectorAll("tr");
+  for (let i = 1; i < rows.length; i++) {
+    const cells = rows[i].querySelectorAll("td");
+    if (cells.length >= teamAbbrs.length + 1) {
+      const positionName = cells[0].textContent.trim();
+      for (let j = 0; j < teamAbbrs.length; j++) {
+        const teamAbbr = teamAbbrs[j];
+        const count = teamPositionCounts[teamAbbr]?.[positionName] || 0;
+        cells[j + 1].textContent = count;
+      }
+    }
+  }
+  calculateFinalTable(teamPositionCounts);
+}
+
+function calculateFinalTable(teamPositionCounts) {
+  const threatTable = document.getElementById("threat-table");
+  if (!threatTable) {
+    console.error("Final table not found!");
+    return;
+  }
+  const positions = ["Setter", "Attacker", "Libero", "Middle Blocker", "Universal"];
+  const rows = threatTable.querySelectorAll("tr");
+  for (let i = 1; i < rows.length; i++) {
+    const cells = rows[i].querySelectorAll("td");
+    if (cells.length >= 2) {
+      const positionName = cells[0].textContent.trim();
+      let finalValue = 0;
+      if (positionName === "Setter" || positionName === "Libero" || positionName === "Universal") {
+        const positionTable = document.getElementById("position-table");
+        const positionRows = positionTable.querySelectorAll("tr");
+        for (let j = 1; j < positionRows.length; j++) {
+          const positionCells = positionRows[j].querySelectorAll("td");
+          if (positionCells[0].textContent.trim() === positionName) {
+            for (let k = 1; k < positionCells.length; k++) {
+              const value = parseInt(positionCells[k].textContent) || 0;
+              if (value === 0) {
+                finalValue++;
+              }
+            }
+            break;
+          }
+        }
+      } else if (positionName === "Attacker" || positionName === "Middle Blocker") {
+        const positionTable = document.getElementById("position-table");
+        const positionRows = positionTable.querySelectorAll("tr");
+        for (let j = 1; j < positionRows.length; j++) {
+          const positionCells = positionRows[j].querySelectorAll("td");
+          if (positionCells[0].textContent.trim() === positionName) {
+            for (let k = 1; k < positionCells.length; k++) {
+              const x = parseInt(positionCells[k].textContent) || 0;
+              finalValue += 0.5 * (2 - x);
+            }
+            break;
+          }
+        }
+      }
+      cells[1].textContent = finalValue.toFixed(1);
+    }
+  }
+  if (typeof Storage !== "undefined") {
+    const threatScoresByPosition = {};
+    for (let i = 1; i < rows.length; i++) {
+      const cells = rows[i].querySelectorAll("td");
+      if (cells.length >= 2) {
+        const positionName = cells[0].textContent.trim();
+        const value = parseFloat(cells[1].textContent) || 0;
+        threatScoresByPosition[positionName] = value;
+      }
+    }
+    localStorage.setItem('threatScoresByPosition', JSON.stringify(threatScoresByPosition));
+  }
+}
+
+async function recalculateAndUpdateFinances() {
+    const teamAbbrs = [
+        "AD", "BT", "CH", "CB", "DT", "HBH", "KBS", "KT", "MM", "GG"
+    ];
+    for (const abbr of teamAbbrs) {
+        let auction_spent = 0;
+        let overall_spent = 0;
+        let opening_balance = 80; // You can fetch this from finances if needed
+        try {
+            // Get all players in the team roster
+            const playersRef = collection(db, abbr, "roster", "players");
+            const playersSnap = await getDocs(playersRef);
+            playersSnap.forEach(docSnap => {
+                const player = docSnap.data();
+                const price = parseFloat(player.price) || 0;
+                const category = (player.category || '').toLowerCase();
+                if (category !== 'retained') {
+                    auction_spent += price;
+                }
+                overall_spent += price;
+            });
+            const purse = opening_balance - overall_spent;
+            // Update finances document
+            const financesRef = doc(db, abbr, "finances");
+            await updateDoc(financesRef, {
+                auction_spent: auction_spent,
+                overall_spent: overall_spent,
+                purse: purse
+            });
+        } catch (e) {
+            console.error(`Error updating finances for ${abbr}:`, e);
+        }
+    }
+}
+
+// Main
+async function initializeHomeDashboardSection() {
+    await recalculateAndUpdateFinances();
+    const financialData = await fetchFinancialData();
+    fillFinancialTable(financialData);
+    const positionData = await fetchPositionData();
+    fillPositionTable(positionData);
+}
+initializeHomeDashboardSection();
+
+</script>
+</body>
+</html> 
