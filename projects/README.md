@@ -108,3 +108,4 @@ If you encounter any issues during setup, please check:
 3. Ensure you're running the scripts from the project root directory
 
 For additional help, refer to the error messages displayed during installation.
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
