@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Poker Auction</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #111; color: #fff; }
+    .container { display: flex; min-height: 100vh; }
+    .sidebar { width: 200px; background: #222; display: flex; flex-direction: column; align-items: center; padding-top: 24px; }
+    .sidebar .logo { width: 120px; margin-bottom: 32px; }
+    .sidebar .logo img { width: 100%; }
+    .sidebar .nav-section { margin-bottom: 40px; width: 100%; }
+    .sidebar .nav-item { display: flex; align-items: center; gap: 16px; padding: 16px 24px; cursor: pointer; font-size: 18px; color: #fff; border-radius: 8px; margin-bottom: 8px; transition: background 0.2s; }
+    .sidebar .nav-item.active, .sidebar .nav-item:hover { background: #444; }
+    .sidebar .nav-item .icon { font-size: 28px; width: 32px; text-align: center; }
+    .main-content { flex: 1; padding: 32px 24px 24px 24px; display: flex; flex-direction: column; }
+    .page-title { font-size: 28px; font-weight: bold; margin-bottom: 16px; }
+    .controls { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .btn { padding: 10px 18px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
+    .btn-primary { background: #e44a22; color: #fff; }
+    .btn-secondary { background: #333; color: #fff; border: 1px solid #555; }
+    .auction-table { width: 100%; border-collapse: collapse; background: #181818; border-radius: 12px; overflow: hidden; }
+    .auction-table th { background: #e44a22; color: #fff; padding: 12px 10px; text-align: left; font-weight: bold; font-size: 14px; }
+    .auction-table td { padding: 10px; border-bottom: 1px solid #333; font-size: 14px; }
+    .auction-table tr:hover { background: #222; }
+    .auction-table tr:last-child td { border-bottom: none; }
+    .editable { cursor: pointer; }
+    .editable input { background: transparent; border: 1px solid #e44a22; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 14px; width: 100%; box-sizing: border-box; }
+    .team-dropdown { background: #181818; color: #fff; border: 1px solid #333; padding: 6px 8px; border-radius: 4px; font-size: 14px; width: 100%; cursor: pointer; }
+    .loading, .error { text-align: center; padding: 24px; color: #aaa; }
+    .error { color: #ff6666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div class="logo">
+        <img src="{{ url_for('static', filename='images/bengaluru_allstars.png') }}" alt="Bengaluru Allstars" />
+      </div>
+      <div class="nav-section">
+        <div class="nav-item" onclick="navigateToPage('home')"><span class="icon">🏠</span> Home</div>
+        <div class="nav-item" onclick="navigateToPage('teams')"><span class="icon">📝</span> Teams</div>
+        <div class="nav-item" onclick="navigateToPage('preferences')"><span class="icon">👥</span> Preferences</div>
+        <div class="nav-item active" onclick="navigateToPage('auction')"><span class="icon">🧑‍🤝‍🧑</span> Auction</div>
+        <div class="nav-item" onclick="navigateToPage('budgeting')"><span class="icon">💰</span> Budgeting</div>
+      </div>
+    </div>
+    <div class="main-content">
+      <div class="page-title">Poker Auction</div>
+      <div class="controls">
+        <button class="btn btn-primary" onclick="sellSelectedPlayer()">Sell</button>
+        <button class="btn btn-secondary" onclick="reloadPlayers()">Reload</button>
+        <button class="btn btn-secondary" onclick="undoLastSale()">Undo</button>
+      </div>
+      <div id="table-container">
+        <div class="loading">Loading players...</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, updateDoc, getDoc, setDoc, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+    // Poker Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBqnlSKs4OtIt9h0OhpdK9iVQIT2LTNX5g",
+      authDomain: "poker-auction.firebaseapp.com",
+      projectId: "poker-auction",
+      storageBucket: "poker-auction.firebasestorage.app",
+      messagingSenderId: "736498711178",
+      appId: "1:736498711178:web:63e65a6e74048a46c24b73",
+      measurementId: "G-W9DRZ2J3E8"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    let saleHistory = JSON.parse(localStorage.getItem('pokerSaleHistory') || '[]');
+
+    // Team abbreviations used for collection names
+    const teamMapping = {
+      BA: "Bengaluru Allstars",
+      DA: "Deccan Aces",
+      GH: "Gurgaon",
+      GF: "Gujarat Falcons",
+      MM: "Madras",
+      LK: "Lucknow Kings",
+      MA: "Mumbai Anchors",
+      DT: "Delhi Titans"
+    };
+
+    let allPlayersData = [];
+
+    async function fetchAllPlayers() {
+      const players = [];
+      try {
+        const snap = await getDocs(collection(db, "players"));
+        snap.forEach((playerDoc) => {
+          const data = playerDoc.data() || {};
+          players.push({
+            docId: playerDoc.id, // Firestore document id (string)
+            id: data.ID ?? data.id ?? playerDoc.id,
+            name: data.Name ?? data.name ?? "-",
+            team: data.Team ?? data.team ?? "",
+            price: data.Price ?? data.price ?? "",
+            category: data.Category ?? data.category ?? "-",
+            rating: data.Rating ?? data.rating ?? "-"
+          });
+        });
+        console.log(`Fetched ${players.length} players from Firestore 'players' collection.`);
+      } catch (e) {
+        console.error("Error fetching players:", e);
+      }
+      allPlayersData = players;
+      return players;
+    }
+
+    function createAuctionTable(players) {
+      const container = document.getElementById('table-container');
+      if (!players.length) {
+        container.innerHTML = '<div class="error">No players found</div>';
+        return;
+      }
+
+      let header = `
+        <table class="auction-table">
+          <thead>
+            <tr>
+              <th>Select</th>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Team</th>
+              <th>Price</th>
+              <th>Category</th>
+              <th>Rating</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      let rows = "";
+      for (const p of players) {
+        let teamOptions = '<option value="">Select Team</option>';
+        Object.entries(teamMapping).forEach(([abbr, name]) => {
+          const selected = p.team === abbr || p.team === name ? 'selected' : '';
+          teamOptions += `<option value="${abbr}" ${selected}>${name}</option>`;
+        });
+
+        rows += `
+          <tr>
+            <td><input type="radio" name="selectedPlayer" value="${p.docId}"></td>
+            <td>${p.id}</td>
+            <td>${p.name}</td>
+            <td>
+              <select class="team-dropdown" data-docid="${p.docId}" onchange="updateTeam(this)">
+                ${teamOptions}
+              </select>
+            </td>
+            <td class="editable" data-field="Price" data-docid="${p.docId}" onclick="makeEditable(this)">${p.price}</td>
+            <td>${p.category}</td>
+            <td>${p.rating}</td>
+          </tr>
+        `;
+      }
+
+      const footer = `</tbody></table>`;
+      document.getElementById('table-container').innerHTML = header + rows + footer;
+    }
+
+    // Editing helpers
+    function makeEditable(cell) {
+      const currentValue = cell.textContent;
+      const field = cell.getAttribute('data-field');
+      const docId = cell.getAttribute('data-docid');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentValue;
+      cell.textContent = '';
+      cell.appendChild(input);
+      input.focus();
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') saveEditable(cell, input.value, field, docId);
+      });
+      input.addEventListener('blur', () => saveEditable(cell, input.value, field, docId));
+    }
+
+    async function saveEditable(cell, newValue, field, docId) {
+      try {
+        const ref = doc(db, 'players', docId);
+        const updateData = {}; updateData[field] = newValue;
+        await updateDoc(ref, updateData);
+        cell.textContent = newValue;
+      } catch (e) {
+        console.error('Error updating field', e);
+      }
+    }
+
+    async function updateTeam(selectEl) {
+      const docId = selectEl.getAttribute('data-docid');
+      const newTeamAbbr = selectEl.value;
+      try {
+        const ref = doc(db, 'players', docId);
+        await updateDoc(ref, { Team: newTeamAbbr });
+        console.log(`Updated Team for ${docId} to ${newTeamAbbr}`);
+      } catch (e) {
+        console.error('Error updating Team', e);
+      }
+    }
+
+    async function sellSelectedPlayer() {
+      const selected = document.querySelector('input[name="selectedPlayer"]:checked');
+      if (!selected) { alert('Please select a player'); return; }
+      const docId = selected.value;
+      try {
+        // Get latest player data from Firestore
+        const playerRef = doc(db, 'players', docId);
+        const snap = await getDoc(playerRef);
+        if (!snap.exists()) { alert('Player not found'); return; }
+        const data = snap.data() || {};
+
+        // Use the currently selected team from the dropdown for this row
+        const teamSelect = document.querySelector(`select.team-dropdown[data-docid="${docId}"]`);
+        const teamAbbr = teamSelect ? teamSelect.value : (data.Team ?? data.team);
+        if (!teamAbbr || !(teamAbbr in teamMapping)) {
+          alert('Please select a valid team (abbreviation) before selling');
+          return;
+        }
+
+        // Get price (accept uppercase or lowercase field names)
+        const priceRaw = data.Price ?? data.price;
+        if (priceRaw === undefined || priceRaw === null || `${priceRaw}`.trim() === '') {
+          alert('Please set a price before selling');
+          return;
+        }
+        const priceNum = isNaN(Number(priceRaw)) ? priceRaw : Number(priceRaw);
+
+        // Resolve name for consistency
+        const resolvedName = data.Name ?? data.name ?? docId;
+
+        // Record sale for undo
+        saleHistory.push({ action: 'sale', docId, playerData: data, team: teamAbbr, timestamp: Date.now() });
+        localStorage.setItem('pokerSaleHistory', JSON.stringify(saleHistory));
+
+        // Prepare roster document with all-lowercase fields and no team abbreviation field
+        const normalized = {};
+        Object.entries(data).forEach(([key, value]) => {
+          normalized[String(key).toLowerCase()] = value;
+        });
+        normalized.name = resolvedName;
+        normalized.team = teamMapping[teamAbbr];
+        normalized.price = priceNum;
+        delete normalized.teamabbreviation;
+        const rosterDoc = normalized;
+
+        // Write to team's roster subcollection
+        const teamPlayerRef = doc(db, teamAbbr, 'roster', 'players', docId);
+        await setDoc(teamPlayerRef, rosterDoc);
+
+        // Update finances: add to spent and subtract from balance
+        const incAmount = Number(priceNum) || 0;
+        if (incAmount !== 0) {
+          const financesRef = doc(db, teamAbbr, 'finances');
+          try {
+            await runTransaction(db, async (tx) => {
+              const snap = await tx.get(financesRef);
+              const data = snap.exists() ? (snap.data() || {}) : {};
+              const prevSpent = Number(data.spent) || 0;
+              const prevBalance = Number(data.balance) || 0;
+              tx.set(financesRef, {
+                spent: prevSpent + incAmount,
+                balance: prevBalance - incAmount
+              }, { merge: true });
+            });
+          } catch (e) {
+            console.error('Error updating finances for team', teamAbbr, e);
+          }
+        }
+
+        // Remove from auction list
+        await deleteDoc(playerRef);
+        console.log(`Sold ${resolvedName} to ${teamMapping[teamAbbr]} (${teamAbbr}) for ${priceNum}`);
+        await reloadPlayers();
+      } catch (e) {
+        console.error('Error selling player:', e);
+        alert('Error selling player. Please try again.');
+      }
+    }
+
+    async function undoLastSale() {
+      if (!saleHistory.length) { alert('No sales to undo'); return; }
+      const last = saleHistory.pop();
+      localStorage.setItem('pokerSaleHistory', JSON.stringify(saleHistory));
+      if (last.action !== 'sale') { await reloadPlayers(); return; }
+      try {
+        // Remove from team roster
+        const teamPlayerRef = doc(db, last.team, 'roster', 'players', last.docId);
+        await deleteDoc(teamPlayerRef);
+        // Restore original player document back to auction
+        const playerRef = doc(db, 'players', last.docId);
+        await setDoc(playerRef, last.playerData);
+        // Reverse finances update
+        const priceRaw = last.playerData.Price ?? last.playerData.price;
+        const amount = Number(priceRaw) || 0;
+        if (amount !== 0) {
+          const financesRef = doc(db, last.team, 'finances');
+          try {
+            await runTransaction(db, async (tx) => {
+              const snap = await tx.get(financesRef);
+              const data = snap.exists() ? (snap.data() || {}) : {};
+              const prevSpent = Number(data.spent) || 0;
+              const prevBalance = Number(data.balance) || 0;
+              tx.set(financesRef, {
+                spent: Math.max(0, prevSpent - amount),
+                balance: prevBalance + amount
+              }, { merge: true });
+            });
+          } catch (e) {
+            console.error('Error reversing finances for team', last.team, e);
+          }
+        }
+        console.log(`Undid sale of ${last.playerData.Name ?? last.docId} from ${last.team}`);
+        await reloadPlayers();
+      } catch (e) {
+        console.error('Error undoing last sale:', e);
+        alert('Error undoing last sale. Please try again.');
+      }
+    }
+
+    async function reloadPlayers() {
+      document.getElementById('table-container').innerHTML = '<div class="loading">Loading players...</div>';
+      const players = await fetchAllPlayers();
+      createAuctionTable(players);
+    }
+
+    // Navigation (same routes as dashboard)
+    function navigateToPage(page) {
+      switch(page) {
+        case 'home':
+          window.location.href = '/dashboard';
+          break;
+        case 'teams':
+          window.location.href = '/teams_view';
+          break;
+        case 'preferences':
+          window.location.href = '/pref';
+          break;
+        case 'auction':
+          window.location.href = '/auction_table';
+          break;
+        case 'budgeting':
+          window.location.href = '/financing';
+          break;
+        default:
+          console.log('Unknown page:', page);
+      }
+    }
+
+    // Expose globals used by inline handlers
+    window.makeEditable = makeEditable;
+    window.updateTeam = updateTeam;
+    window.sellSelectedPlayer = sellSelectedPlayer;
+    window.reloadPlayers = reloadPlayers;
+    window.undoLastSale = undoLastSale;
+    window.navigateToPage = navigateToPage;
+
+    // Initial load
+    reloadPlayers();
+  </script>
+</body>
+</html>
+
+

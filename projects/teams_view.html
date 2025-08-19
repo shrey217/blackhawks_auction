@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Teams View</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: #fff;
+        }
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 200px;
+            background: #222;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 24px;
+        }
+        .sidebar .logo {
+            width: 120px;
+            margin-bottom: 32px;
+        }
+        .sidebar .logo img {
+            width: 100%;
+        }
+        .sidebar .nav-section {
+            margin-bottom: 40px;
+            width: 100%;
+        }
+        .sidebar .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #fff;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        .sidebar .nav-item.active, .sidebar .nav-item:hover {
+            background: #444;
+        }
+        .sidebar .nav-item .icon {
+            font-size: 28px;
+            width: 32px;
+            text-align: center;
+        }
+        .main-content {
+            flex: 1;
+            padding: 32px 24px 24px 24px;
+            display: flex;
+            flex-direction: column;
+        }
+        .page-title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 32px;
+            color: #fff;
+        }
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .team-dropdown {
+            background: #181818;
+            color: #fff;
+            border: 1px solid #333;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .team-dropdown:focus {
+            outline: none;
+            border-color: #e44a22;
+            box-shadow: 0 0 0 2px rgba(228, 74, 34, 0.2);
+        }
+        .section {
+            background: #181818;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .section-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #e44a22;
+            margin-bottom: 16px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 24px;
+        }
+        .stat-box {
+            background: #222;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        .stat-label {
+            color: #aaa;
+            font-size: 14px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .players-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #222;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .players-table th, .players-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+        .players-table th {
+            background: #e44a22;
+            color: #fff;
+        }
+        .players-table tr:last-child td {
+            border-bottom: none;
+        }
+        .retained-badge {
+            background: #4caf50;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .bought-badge {
+            background: #2196f3;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .needed-position {
+            color: #ff9800;
+            font-weight: bold;
+        }
+        .position-red {
+            color: #ff4444;
+        }
+        .position-yellow {
+            color: #ffaa00;
+        }
+        .position-green {
+            color: #44ff44;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/bengaluru_allstars.png') }}" alt="Bengaluru Allstars">
+            </div>
+            <div class="nav-section">
+                <div class="nav-item" onclick="navigateToPage('home')"><span class="icon">🏠</span> Home</div>
+                <div class="nav-item active" onclick="navigateToPage('teams')"><span class="icon">📝</span> Teams</div>
+                <div class="nav-item" onclick="navigateToPage('preferences')"><span class="icon">👥</span> Preferences</div>
+                <div class="nav-item" onclick="navigateToPage('auction')"><span class="icon">🧑‍🤝‍🧑</span> Auction</div>
+                <div class="nav-item" onclick="navigateToPage('budgeting')"><span class="icon">💰</span> Budgeting</div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="page-title">Poker Teams View</div>
+            <div class="controls">
+                <label for="teamSelect" style="color: #fff; margin-right: 8px;">Select Team:</label>
+                <select id="teamSelect" class="team-dropdown" onchange="onTeamChange()">
+                    <option value="BA">Bengaluru Allstars</option>
+                    <option value="DA">Deccan Aces</option>
+                    <option value="GN">Goan Nuts</option>
+                    <option value="GF">Gujarat Falcons</option>
+                    <option value="KW">Kolkata Warriors</option>
+                    <option value="LK">Lucknow Kings</option>
+                    <option value="MA">Mumbai Anchors</option>
+                    <option value="T8">Team 8</option>
+                </select>
+            </div>
+            <div id="teamStats">
+                <!-- Team stats and tables will be rendered here -->
+            </div>
+        </div>
+    </div>
+</body>
+<script type="module">
+// --- Firebase Web SDK Setup ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBqnlSKs4OtIt9h0OhpdK9iVQIT2LTNX5g",
+  authDomain: "poker-auction.firebaseapp.com",
+  projectId: "poker-auction",
+  storageBucket: "poker-auction.firebasestorage.app",
+  messagingSenderId: "736498711178",
+  appId: "1:736498711178:web:7e52da80cb2336dfc24b73",
+  measurementId: "G-9P28NQ1SBW"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const teamMapping = {
+  "BA": "Bengaluru Allstars",
+  "DA": "Deccan Aces",
+  "GN": "Goan Nuts",
+  "GF": "Gujarat Falcons",
+  "KW": "Kolkata Warriors",
+  "LK": "Lucknow Kings",
+  "MA": "Mumbai Anchors",
+  "T8": "Team 8"
+};
+
+// Poker categories
+const categories = ["Pro", "Qualifier"];
+
+// Position requirements for Poker teams
+const positionRequirements = {
+    "Pro": [3, 5],      // [minimum, maximum] - teams need 3-5 Pro players
+    "Qualifier": [5, 7] // [minimum, maximum] - teams need 5-7 Qualifier players
+};
+
+let currentTeam = "BA";
+
+function navigateToPage(page) {
+    switch(page) {
+        case 'home':
+            window.location.href = '/dashboard';
+            break;
+        case 'teams':
+            window.location.href = '/teams_view';
+            break;
+        case 'preferences':
+            window.location.href = '/pref';
+            break;
+        case 'auction':
+            window.location.href = '/auction_table';
+            break;
+        case 'budgeting':
+            window.location.href = '/financing';
+            break;
+        default:
+            console.log('Unknown page:', page);
+    }
+}
+window.navigateToPage = navigateToPage;
+
+window.onTeamChange = function() {
+    currentTeam = document.getElementById('teamSelect').value;
+    renderTeamStats();
+};
+
+async function renderTeamStats() {
+    const statsDiv = document.getElementById('teamStats');
+    statsDiv.innerHTML = '<div class="loading">Loading team data...</div>';
+    
+    try {
+        // Fetch players in team roster
+        const rosterRef = collection(db, currentTeam, "roster", "players");
+        const rosterSnap = await getDocs(rosterRef);
+        const players = [];
+        rosterSnap.forEach(d => {
+            const data = d.data() || {};
+            const normalized = {};
+            Object.entries(data).forEach(([k, v]) => { normalized[String(k).toLowerCase()] = v; });
+            normalized.name = normalized.name || d.id;
+            players.push({ docId: d.id, ...normalized });
+        });
+
+        // --- Players Table ---
+        let playersTable = `<div class="section"><div class="section-title">Players Bought / Retained</div><table class="players-table"><thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Rating</th><th>Status</th></tr></thead><tbody>`;
+        
+        if (players.length === 0) {
+            playersTable += `<tr><td colspan="5">No players found for this team.</td></tr>`;
+        } else {
+            players.forEach(player => {
+                const isRetained = (player.category || '').toLowerCase() === 'retained';
+                playersTable += `<tr><td>${player.name || '-'}</td><td>${player.category || '-'}</td><td>${player.price || '-'}</td><td>${player.rating || '-'}</td><td>${isRetained ? '<span class="retained-badge">Retained</span>' : '<span class="bought-badge">Bought</span>'}</td></tr>`;
+            });
+        }
+        playersTable += `</tbody></table></div>`;
+
+        // --- Category Stats ---
+        const categoriesLower = categories.map(c => c.toLowerCase());
+        const categoryCounts = {};
+        categoriesLower.forEach(cat => categoryCounts[cat] = 0);
+        players.forEach(player => {
+            const playerCatLower = (player.category || '').toLowerCase().trim();
+            if (categoriesLower.includes(playerCatLower)) {
+                categoryCounts[playerCatLower]++;
+            }
+        });
+
+        let categoryStats = `<div class="section"><div class="section-title">Players per Category</div><div class="stats-grid">`;
+        categories.forEach(cat => {
+            const count = categoryCounts[cat.toLowerCase()];
+            const [minReq, maxReq] = positionRequirements[cat];
+            let colorClass = 'position-red';
+            if (count >= maxReq) {
+                colorClass = 'position-green';
+            } else if (count >= minReq) {
+                colorClass = 'position-yellow';
+            }
+            categoryStats += `<div class="stat-box"><div class="stat-label">${cat}</div><div class="stat-value ${colorClass}">${count}</div><div class="stat-label">(${minReq}-${maxReq})</div></div>`;
+        });
+        categoryStats += `</div></div>`;
+
+        // --- Available Spots ---
+        let availableSpots = `<div class="section"><div class="section-title">Available Spots</div><div class="stats-grid">`;
+        categories.forEach(cat => {
+            const current = categoryCounts[cat.toLowerCase()];
+            const [minReq, maxReq] = positionRequirements[cat];
+            const remaining = Math.max(0, maxReq - current);
+            const needed = Math.max(0, minReq - current);
+            
+            let statusText = '';
+            let statusClass = '';
+            
+            if (current >= maxReq) {
+                statusText = 'Full';
+                statusClass = 'position-green';
+            } else if (current >= minReq) {
+                statusText = `${remaining} spots left`;
+                statusClass = 'position-yellow';
+            } else {
+                statusText = `Need ${needed} more`;
+                statusClass = 'position-red';
+            }
+            
+            availableSpots += `<div class="stat-box"><div class="stat-label">${cat}</div><div class="stat-value ${statusClass}">${statusText}</div></div>`;
+        });
+        availableSpots += `</div></div>`;
+
+        // --- Financial Summary ---
+        const totalPlayers = players.length;
+        // Use 'spent' from finances doc for this team
+        let totalSpent = 0;
+        try {
+            const financeSnap = await getDoc(doc(db, currentTeam, 'finances'));
+            if (financeSnap.exists()) {
+                const f = financeSnap.data() || {};
+                const n = Number(f.spent);
+                totalSpent = isNaN(n) ? 0 : n;
+            }
+        } catch (e) {
+            console.error('Error fetching finances for total spent:', e);
+        }
+        const avgCost = totalPlayers > 0 ? (totalSpent / totalPlayers).toFixed(2) : 0;
+        
+        let financialStats = `<div class="section"><div class="section-title">Financial Summary</div><div class="stats-grid">`;
+        financialStats += `<div class="stat-box"><div class="stat-label">Total Players</div><div class="stat-value">${totalPlayers}</div></div>`;
+        financialStats += `<div class="stat-box"><div class="stat-label">Total Spent</div><div class="stat-value">${totalSpent} L</div></div>`;
+        financialStats += `<div class="stat-box"><div class="stat-label">Avg Cost/Player</div><div class="stat-value">${avgCost} L</div></div>`;
+        financialStats += `</div></div>`;
+
+        // Render all sections
+        statsDiv.innerHTML = playersTable + categoryStats + availableSpots + financialStats;
+        
+    } catch (error) {
+        console.error('Error loading team data:', error);
+        statsDiv.innerHTML = '<div class="error">Error loading team data. Please try again.</div>';
+    }
+}
+
+// Initial render
+renderTeamStats();
+</script>
+</html>

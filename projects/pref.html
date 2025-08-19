@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Preferences</title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; background: #111; color: #fff; }
+        .container { display: flex; min-height: 100vh; }
+        .sidebar { width: 200px; background: #222; display: flex; flex-direction: column; align-items: center; padding-top: 24px; }
+        .sidebar .logo { width: 120px; margin-bottom: 32px; }
+        .sidebar .logo img { width: 100%; }
+        .sidebar .nav-section { margin-bottom: 40px; width: 100%; }
+        .sidebar .nav-item { display: flex; align-items: center; gap: 16px; padding: 16px 24px; cursor: pointer; font-size: 18px; color: #fff; border-radius: 8px; margin-bottom: 8px; transition: background 0.2s; }
+        .sidebar .nav-item.active, .sidebar .nav-item:hover { background: #444; }
+        .sidebar .nav-item .icon { font-size: 28px; width: 32px; text-align: center; }
+        .main-content { flex: 1; padding: 32px 24px 24px 24px; display: flex; flex-direction: column; }
+        .page-title { font-size: 32px; font-weight: bold; margin-bottom: 24px; color: #fff; }
+        .add-player-section { background: #181818; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .add-player-title { font-size: 20px; font-weight: bold; margin-bottom: 16px; color: #e44a22; }
+        .input-group { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+        .input-field { background: #333; color: #fff; border: 1px solid #555; padding: 8px 12px; border-radius: 4px; font-size: 14px; min-width: 180px; }
+        .input-field:focus { outline: none; border-color: #e44a22; box-shadow: 0 0 0 2px rgba(228, 74, 34, 0.2); }
+        .btn { padding: 10px 16px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #e44a22; color: #fff; }
+        .btn-primary:hover { background: #d13a12; }
+        .btn-secondary { background: #333; color: #fff; border: 1px solid #555; }
+        .btn-secondary:hover { background: #444; }
+        .preferences-table { width: 100%; border-collapse: collapse; background: #181818; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .preferences-table th { background: #e44a22; color: white; padding: 14px 12px; text-align: left; font-weight: bold; font-size: 16px; }
+        .preferences-table td { padding: 12px; border-bottom: 1px solid #333; font-size: 14px; }
+        .preferences-table tr:hover { background: #222; }
+        .preferences-table tr:last-child td { border-bottom: none; }
+        .sold-player { background: #2d2d2d !important; color: #888; }
+        .sold-badge { background: #d32f2f; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .success-message { color: #4caf50; font-size: 14px; margin-top: 8px; }
+        .error-message { color: #ff6666; font-size: 14px; margin-top: 8px; }
+        .loading { text-align: center; padding: 40px; font-size: 18px; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/bengaluru_allstars.png') }}" alt="Bengaluru Allstars">
+            </div>
+            <div class="nav-section">
+                <div class="nav-item" onclick="navigateToPage('home')"><span class="icon">🏠</span> Home</div>
+                <div class="nav-item" onclick="navigateToPage('teams')"><span class="icon">📝</span> Teams</div>
+                <div class="nav-item active" onclick="navigateToPage('preferences')"><span class="icon">👥</span> Preferences</div>
+                <div class="nav-item" onclick="navigateToPage('auction')"><span class="icon">🧑‍🤝‍🧑</span> Auction</div>
+                <div class="nav-item" onclick="navigateToPage('budgeting')"><span class="icon">💰</span> Budgeting</div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="page-title">Player Preferences</div>
+
+            <div class="add-player-section">
+                <div class="add-player-title">Add Player to Preferences</div>
+                <div class="input-group">
+                    <input type="text" id="playerName" class="input-field" placeholder="Player Name" list="playerNameList" />
+                    <input type="number" id="preference" class="input-field" placeholder="Preference (1,2,3,4)" min="1" />
+                    <input type="text" id="priceRange" class="input-field" placeholder="Price Range (e.g., 5-8L)" />
+                    <button class="btn btn-primary" onclick="addPlayerToPreferences()">Add Player</button>
+                </div>
+                <datalist id="playerNameList"></datalist>
+                <div id="addPlayerMessage"></div>
+            </div>
+
+            <div id="table-container">
+                <div class="loading">Loading preferences...</div>
+            </div>
+        </div>
+    </div>
+</body>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBqnlSKs4OtIt9h0OhpdK9iVQIT2LTNX5g",
+  authDomain: "poker-auction.firebaseapp.com",
+  projectId: "poker-auction",
+  storageBucket: "poker-auction.firebasestorage.app",
+  messagingSenderId: "736498711178",
+  appId: "1:736498711178:web:7e52da80cb2336dfc24b73",
+  measurementId: "G-9P28NQ1SBW"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+function navigateToPage(page) {
+  switch(page) {
+    case 'home':
+      window.location.href = '/dashboard';
+      break;
+    case 'teams':
+      window.location.href = '/teams_view';
+      break;
+    case 'preferences':
+      window.location.href = '/pref';
+      break;
+    case 'auction':
+      window.location.href = '/auction_table';
+      break;
+    case 'budgeting':
+      window.location.href = '/financing';
+      break;
+    default:
+      console.log('Unknown page:', page);
+  }
+}
+window.navigateToPage = navigateToPage;
+
+// Local storage for Poker preferences
+const STORAGE_KEY = 'pokerPlayerPreferences';
+let allPreferences = [];
+
+// Team abbreviations for checking sold status
+const teamAbbrs = [ 'BA', 'DA', 'GN', 'GF', 'KW', 'LK', 'MA', 'T8' ];
+
+async function populatePlayerNameDatalist() {
+  try {
+    const playersRef = collection(db, 'players');
+    const snap = await getDocs(playersRef);
+    const datalist = document.getElementById('playerNameList');
+    datalist.innerHTML = '';
+    snap.forEach(docSnap => {
+      const data = docSnap.data();
+      const name = data.Name || data.name;
+      if (name) {
+        const option = document.createElement('option');
+        option.value = name;
+        datalist.appendChild(option);
+      }
+    });
+  } catch (e) {
+    console.error('Error populating datalist:', e);
+  }
+}
+
+async function searchPlayersByExactName(playerName) {
+  const matches = [];
+  const playersRef = collection(db, 'players');
+  const snap = await getDocs(playersRef);
+  snap.forEach(docSnap => {
+    const data = docSnap.data();
+    const name = data.Name || data.name;
+    if (name && name.toLowerCase() === playerName.toLowerCase()) {
+      matches.push({ id: docSnap.id, Name: name, ...data });
+    }
+  });
+  return matches;
+}
+
+async function checkIfPlayerSoldById(playerId) {
+  for (const abbr of teamAbbrs) {
+    try {
+      const teamPlayerRef = doc(db, abbr, 'roster', 'players', playerId);
+      const teamPlayerSnap = await getDoc(teamPlayerRef);
+      if (teamPlayerSnap.exists()) return true;
+    } catch (e) {
+      console.error('Error checking sold for', abbr, e);
+    }
+  }
+  return false;
+}
+
+function savePreferencesToStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(allPreferences));
+}
+
+function loadPreferencesFromStorage() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  allPreferences = saved ? JSON.parse(saved) : [];
+}
+
+function createPreferencesTable() {
+  const container = document.getElementById('table-container');
+  if (!allPreferences.length) {
+    container.innerHTML = '<div class="loading">No preferences added yet.</div>';
+    return;
+  }
+  const prefs = [...allPreferences];
+  // Sort: available first, then by preference asc
+  prefs.sort((a, b) => {
+    if (a.isSold && !b.isSold) return 1;
+    if (!a.isSold && b.isSold) return -1;
+    return (parseInt(a.preference) || 0) - (parseInt(b.preference) || 0);
+  });
+  let html = `
+    <table class="preferences-table">
+      <thead>
+        <tr>
+          <th>Preference</th>
+          <th>Name</th>
+          <th>Price Range</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  prefs.forEach(p => {
+    const statusCell = p.isSold ? '<span class="sold-badge">SOLD</span>' : '<span style="color:#4caf50;">Available</span>';
+    const rowClass = p.isSold ? 'sold-player' : '';
+    html += `
+      <tr class="${rowClass}">
+        <td>${p.preference}</td>
+        <td>${p.name}</td>
+        <td>${p.priceRange}</td>
+        <td>${statusCell}</td>
+        <td><button class="btn btn-secondary" onclick="removePreference('${p.id}')">Remove</button></td>
+      </tr>
+    `;
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+window.addPlayerToPreferences = async function addPlayerToPreferences() {
+  const nameInput = document.getElementById('playerName');
+  const prefInput = document.getElementById('preference');
+  const priceInput = document.getElementById('priceRange');
+  const messageDiv = document.getElementById('addPlayerMessage');
+  messageDiv.innerHTML = '';
+
+  const name = (nameInput.value || '').trim();
+  const pref = (prefInput.value || '').trim();
+  const priceRange = (priceInput.value || '').trim();
+
+  if (!name || !pref || !priceRange) {
+    messageDiv.innerHTML = '<div class="error-message">Please fill in all fields.</div>';
+    return;
+  }
+
+  try {
+    const matches = await searchPlayersByExactName(name);
+    if (!matches.length) {
+      messageDiv.innerHTML = '<div class="error-message">Player not found in auction list.</div>';
+      return;
+    }
+    // If multiple matches, pick the first exact match (names should be unique)
+    const player = matches[0];
+
+    // Prevent duplicates by id
+    if (allPreferences.some(p => p.id === player.id)) {
+      messageDiv.innerHTML = '<div class="error-message">Player already in preferences.</div>';
+      return;
+    }
+
+    // Persist the entered preference to the player's Firestore document (lowercase 'preference')
+    try {
+      const playerRef = doc(db, 'players', player.id);
+      const prefNumber = parseInt(pref, 10);
+      await updateDoc(playerRef, { preference: isNaN(prefNumber) ? pref : prefNumber });
+    } catch (e) {
+      console.error('Error updating player preference field in Firestore:', e);
+      // Continue even if this fails, but inform the user
+    }
+
+    const isSold = await checkIfPlayerSoldById(player.id);
+    allPreferences.push({ id: player.id, name: player.Name, preference: pref, priceRange: priceRange, isSold });
+    savePreferencesToStorage();
+    nameInput.value = '';
+    prefInput.value = '';
+    priceInput.value = '';
+    messageDiv.innerHTML = '<div class="success-message">Added to preferences.</div>';
+    createPreferencesTable();
+  } catch (e) {
+    console.error('Error adding preference:', e);
+    messageDiv.innerHTML = '<div class="error-message">Error adding preference.</div>';
+  }
+}
+
+window.removePreference = async function removePreference(playerId) {
+  try {
+    const playerRef = doc(db, 'players', playerId);
+    await updateDoc(playerRef, { preference: 0 });
+  } catch (e) {
+    console.error('Error resetting player preference in Firestore:', e);
+  }
+  allPreferences = allPreferences.filter(p => p.id !== playerId);
+  savePreferencesToStorage();
+  createPreferencesTable();
+}
+
+async function refreshSoldStatuses() {
+  for (let i = 0; i < allPreferences.length; i++) {
+    allPreferences[i].isSold = await checkIfPlayerSoldById(allPreferences[i].id);
+  }
+  savePreferencesToStorage();
+  createPreferencesTable();
+}
+
+// Initialize
+(function init() {
+  loadPreferencesFromStorage();
+  populatePlayerNameDatalist();
+  refreshSoldStatuses();
+  createPreferencesTable();
+})();
+</script>
+</html>
