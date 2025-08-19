@@ -146,35 +146,19 @@
                         <td class="label"></td>
                         <td><img src="{{ url_for('static', filename='images/bengaluru_allstars.png') }}" alt="Bengaluru Allstars" class="team-logo" style="width:80px;height:80px;"></td>
                         <td><img src="{{ url_for('static', filename='images/deccan_aces.png') }}" alt="Deccan Aces" class="team-logo" style="width:80px;height:80px;"></td>
-                        <td><img src="{{ url_for('static', filename='images/goan_nuts.png') }}" alt="Goan Nuts" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><div class="team-logo" style="width:80px;height:80px;display:flex;align-items:center;justify-content:center;">Gurgaon</div></td>
                         <td><img src="{{ url_for('static', filename='images/gujarat_falcons.png') }}" alt="Gujarat Falcons" class="team-logo" style="width:80px;height:80px;"></td>
-                        <td><img src="{{ url_for('static', filename='images/kolkata_warriors.png') }}" alt="Kolkata Warriors" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><div class="team-logo" style="width:80px;height:80px;display:flex;align-items:center;justify-content:center;">Madras</div></td>
                         <td><img src="{{ url_for('static', filename='images/lucknow_kings.png') }}" alt="Lucknow Kings" class="team-logo" style="width:80px;height:80px;"></td>
                         <td><img src="{{ url_for('static', filename='images/mumbai_anchors.png') }}" alt="Mumbai Anchors" class="team-logo" style="width:80px;height:80px;"></td>
+                        <td><div class="team-logo" style="width:80px;height:80px;display:flex;align-items:center;justify-content:center;">Delhi</div></td>
                     </tr>
-                    {% set labels = [
-                        'purse', 'opening balance', 'spent', 'remaining pro', 'remaining quali', 'captain', 'wildcard',
-                        'pro 1', 'pro 2', 'pro 3',
-                        'qualifier 1', 'qualifier 2', 'qualifier 3', 'qualifier 4', 'qualifier 5', 'qualifier 6'
-                    ] %}
-                    {% for label in labels %}
-                    <tr>
-                        <td class="label">{{ label }}</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                    </tr>
-                    {% endfor %}
+                    <tbody id="dashboard-body"></tbody>
                 </table>
             </div>
         </div>
     </div>
 </body>
-<script src="{{ url_for('static', filename='firebase.js') }}"></script>
 <script>
 function navigateToPage(page) {
     switch(page) {
@@ -198,5 +182,128 @@ function navigateToPage(page) {
     }
 }
 window.navigateToPage = navigateToPage;
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+// Poker Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyBqnlSKs4OtIt9h0OhpdK9iVQIT2LTNX5g",
+  authDomain: "poker-auction.firebaseapp.com",
+  projectId: "poker-auction",
+  storageBucket: "poker-auction.firebasestorage.app",
+  messagingSenderId: "736498711178",
+  appId: "1:736498711178:web:63e65a6e74048a46c24b73",
+  measurementId: "G-W9DRZ2J3E8"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Team order must match the header logos (now 8 columns)
+const teamOrder = [ 'BA', 'DA', 'GH', 'GF', 'MM', 'LK', 'MA', 'DT' ];
+
+// Row labels in order
+const labels = [
+  'purse', 'opening balance', 'spent', 'captain', 'wildcard',
+  'pro 1', 'pro 2', 'pro 3', 'female pro',
+  'qualifier 1', 'qualifier 2', 'qualifier 3', 'qualifier 4', 'qualifier 5'
+];
+
+function normalizeCategory(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+async function fetchTeamData(teamAbbr) {
+  // Finance
+  let finance = { balance: '-', starting: '-', spent: '-' };
+  try {
+    const financeSnap = await getDoc(doc(db, teamAbbr, 'finances'));
+    if (financeSnap.exists()) {
+      const f = financeSnap.data() || {};
+      const starting = (f.starting_balance ?? f.starting_bal ?? f.opening_balance ?? f.opening_bal);
+      finance = {
+        balance: f.balance ?? '-',
+        starting: starting ?? '-',
+        spent: f.spent ?? '-'
+      };
+    }
+  } catch (e) {
+    console.error(`Error fetching finance for ${teamAbbr}`, e);
+  }
+
+  // Roster players by category
+  const captain = [];
+  const wildcard = [];
+  const femalePro = [];
+  const pros = [];
+  const qualifiers = [];
+  try {
+    const rosterSnap = await getDocs(collection(db, teamAbbr, 'roster', 'players'));
+    rosterSnap.forEach(d => {
+      const data = d.data() || {};
+      const cat = normalizeCategory(data.category);
+      const idOrName = d.id; // requirement: document IDs (names) in table
+      if (cat === 'captain') captain.push(idOrName);
+      else if (cat === 'wildcard') wildcard.push(idOrName);
+      else if (cat === 'female pro' || cat === 'female') femalePro.push(idOrName);
+      else if (cat === 'pro') pros.push(idOrName);
+      else if (cat === 'qualifier') qualifiers.push(idOrName);
+    });
+  } catch (e) {
+    console.error(`Error fetching roster for ${teamAbbr}`, e);
+  }
+
+  // Sort deterministically
+  const byAlpha = (a, b) => String(a).localeCompare(String(b));
+  captain.sort(byAlpha);
+  wildcard.sort(byAlpha);
+  femalePro.sort(byAlpha);
+  pros.sort(byAlpha);
+  qualifiers.sort(byAlpha);
+
+  return { teamAbbr, finance, captain, wildcard, femalePro, pros, qualifiers };
+}
+
+function valueForLabel(team, label) {
+  switch (label) {
+    case 'purse': return team.finance.balance ?? '-';
+    case 'opening balance': return team.finance.starting ?? '-';
+    case 'spent': return team.finance.spent ?? '-';
+    case 'captain': return team.captain[0] ?? '-';
+    case 'wildcard': return team.wildcard[0] ?? '-';
+    case 'pro 1': return team.pros[0] ?? '-';
+    case 'pro 2': return team.pros[1] ?? '-';
+    case 'pro 3': return team.pros[2] ?? '-';
+    case 'female pro': return team.femalePro[0] ?? '-';
+    case 'qualifier 1': return team.qualifiers[0] ?? '-';
+    case 'qualifier 2': return team.qualifiers[1] ?? '-';
+    case 'qualifier 3': return team.qualifiers[2] ?? '-';
+    case 'qualifier 4': return team.qualifiers[3] ?? '-';
+    case 'qualifier 5': return team.qualifiers[4] ?? '-';
+    default: return '-';
+  }
+}
+
+async function renderDashboard() {
+  const tbody = document.getElementById('dashboard-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  // Fetch all teams in parallel
+  const teams = await Promise.all(teamOrder.map(fetchTeamData));
+
+  // Build rows
+  const rowsHtml = labels.map(label => {
+    const cells = teams.map(team => `<td>${valueForLabel(team, label)}</td>`).join('');
+    return `<tr><td class="label">${label}</td>${cells}</tr>`;
+  }).join('');
+
+  tbody.innerHTML = rowsHtml;
+}
+
+// Initial load
+renderDashboard();
 </script>
 </html>
